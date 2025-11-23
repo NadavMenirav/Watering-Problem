@@ -2,6 +2,12 @@ import ex1_check
 import search
 import utils
 
+KEY_SIZE = "Size"
+KEY_WALLS = "Walls"
+KEY_TAPS = "Taps"
+KEY_PLANTS = "Plants"
+KEY_ROBOTS = "Robots"
+
 id = ["No numbers - I'm special!"]
 
 
@@ -12,6 +18,7 @@ class WateringProblem(search.Problem):
         """ Constructor only needs the initial state.
         Don't forget to set the goal or implement the goal test"""
         search.Problem.__init__(self, initial)
+        self.size = initial.
 
     def successor(self, state):
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
