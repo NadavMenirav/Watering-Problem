@@ -15,21 +15,17 @@ class WateringProblem(search.Problem):
 
     def successor(self, state):
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
-        utils.raiseNotDefined()
 
     def goal_test(self, state):
         """ given a state, checks if this is the goal state, compares to the created goal state returns True/False"""
-        utils.raiseNotDefined()
 
     def h_astar(self, node):
         """ This is the heuristic. It gets a node (not a state)
         and returns a goal distance estimate"""
-        utils.raiseNotDefined()
 
     def h_gbfs(self, node):
         """ This is the heuristic. It gets a node (not a state)
         and returns a goal distance estimate"""
-        utils.raiseNotDefined()
 
 
 def create_watering_problem(game):
