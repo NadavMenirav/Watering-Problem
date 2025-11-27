@@ -24,6 +24,12 @@ class State:
         self.taps = initial.taps
         self.plants = initial.plants
 
+    def __init__(self, size, walls, taps, plants):
+        State.size = size
+        State.walls = walls
+        self.taps = taps
+        self.plants = plants
+
 
 class WateringProblem(search.Problem):
     """This class implements a pressure plate problem"""
@@ -37,6 +43,17 @@ class WateringProblem(search.Problem):
 
     def successor(self, state):
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
+        possible_successors = []
+        new_robots = []
+        for key, robot in state.robots.items():
+            x = robot[0]
+            y = robot[1]
+
+
+
+
+
+
 
     def goal_test(self, state: State) -> bool:
         """ given a state, checks if this is the goal state, compares to the created goal state returns True/False"""
