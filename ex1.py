@@ -52,11 +52,54 @@ class WateringProblem(search.Problem):
             y = robot[1]
 
             # If the robot can move left
-            if x - 1 >= 0 and (x-1, y) not in State.walls:
-                new_robot_tuple = (x-1, y, robot[2], robot[3])
-                new_state = State(state.size, state.walls, state.taps, state.plants, new_robots)
+            if x - 1 >= 0 and (x - 1, y) not in State.walls:
+
+                # Changing the robot's position
+                new_robot_tuple = (x + 1, y, robot[2], robot[3])
+
+                # Creating the new state
+                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+
+                # Adding the new state to the result of all possible states we can go to
+                possible_successors.append(new_state)
 
 
+            # If the robot can move right
+            if x + 1 < State.size[0] and (x + 1, y) not in State.walls:
+
+                # Changing the robot's position
+                new_robot_tuple = (x + 1, y, robot[2], robot[3])
+
+                # Creating the new state
+                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+
+                # Adding the new state to the result of all possible states we can go to
+                possible_successors.append(new_state)
+
+
+            # If the robot can move down
+            if y - 1 >= 0 and (x, y - 1) not in State.walls:
+
+                # Changing the robot's position
+                new_robot_tuple = (x, y - 1, robot[2], robot[3])
+
+                # Creating the new state
+                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+
+                # Adding the new state to the result of all possible states we can go to
+                possible_successors.append(new_state)
+
+            # If the robot can move up
+            if y + 1 < State.size[1] and (x, y + 1) not in State.walls:
+
+                # Changing the robot's position
+                new_robot_tuple = (x, y + 1, robot[2], robot[3])
+
+                # Creating the new state
+                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+
+                # Adding the new state to the result of all possible states we can go to
+                possible_successors.append(new_state)
 
 
 
