@@ -40,7 +40,12 @@ class WateringProblem(search.Problem):
 
     def goal_test(self, state: State) -> bool:
         """ given a state, checks if this is the goal state, compares to the created goal state returns True/False"""
+        # If there is a plant which still needs water, we have not reached the goal yet.
+        for key, value in state.plants.items():
+            if value != 0: return False
 
+        # All plants are watered
+        return True
 
 
     def h_astar(self, node):
