@@ -23,12 +23,14 @@ class State:
         State.walls = initial.walls
         self.taps = initial.taps
         self.plants = initial.plants
+        self.robots = initial.robots
 
-    def __init__(self, size, walls, taps, plants):
+    def __init__(self, size, walls, taps, plants, robots):
         State.size = size
         State.walls = walls
         self.taps = taps
         self.plants = plants
+        self.robots = robots
 
 
 class WateringProblem(search.Problem):
@@ -41,14 +43,18 @@ class WateringProblem(search.Problem):
         self.state = State(initial)
 
 
-    def successor(self, state):
+    def successor(self, state: State):
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
         possible_successors = []
-        new_robots = []
+        new_robots = state.robots
         for key, robot in state.robots.items():
             x = robot[0]
             y = robot[1]
 
+            # If the robot can move left
+            if x - 1 >= 0 and (x-1, y) not in State.walls:
+                new_robot_tuple = (x-1, y, robot[2], robot[3])
+                new_state = State(state.size, state.walls, state.taps, state.plants, new_robots)
 
 
 
