@@ -12,7 +12,7 @@ id = ["No numbers - I'm special!"]
 
 class State:
     size = (0, 0) # Size of the board. no reason to save it in every copy.
-    walls = dict[tuple, bool] # The walls. no reason to save it in every copy.
+    walls: dict[tuple, bool] # The walls. no reason to save it in every copy.
     taps: dict[tuple, int]
     plants: dict[tuple, int]
     robots: dict[int, tuple]
