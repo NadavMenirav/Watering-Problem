@@ -66,7 +66,7 @@ class WateringProblem(search.Problem):
                 new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append(new_state)
+                possible_successors.append((f"LEFT{{{key}}}", new_state))
 
 
             # If the robot can move right
@@ -79,7 +79,7 @@ class WateringProblem(search.Problem):
                 new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append(new_state)
+                possible_successors.append((f"RIGHT{{{key}}}", new_state))
 
 
             # If the robot can move down
@@ -92,7 +92,7 @@ class WateringProblem(search.Problem):
                 new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append(new_state)
+                possible_successors.append((f"DOWN{{{key}}}", new_state))
 
             # If the robot can move up
             if y + 1 < State.size[1] and State.walls.get((x, y + 1)) is None:
@@ -104,14 +104,17 @@ class WateringProblem(search.Problem):
                 new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append(new_state)
+                possible_successors.append((f"UP{{{key}}}", new_state))
 
 
             # We now want to check whether the robot is on a plant it can water
             # We don't care whether there is a plant that needs 0 WU or if there isn't a plant at all
             water_needed_in_plant_under_robot = state.plants.get((x, y), 0)
 
-            # We want to check whether the robot has any WU on him
+        return possible_successors
+
+
+
 
 
 
