@@ -21,7 +21,7 @@ class State:
     def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None):
         # If we construct using initial
         if initial is not None:
-            State.size = initial.size
+            State.size = initial[SIZE]
             State.walls = dict(((i, j), True) for (i, j) in initial[WALLS])
             self.taps = initial[TAPS]
             self.plants = initial[PLANTS]
