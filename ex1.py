@@ -15,7 +15,7 @@ class State:
     walls: dict[tuple, bool] # The walls. no reason to save it in every copy.
     taps: dict[tuple, int]
     plants: dict[tuple, int]
-    robots: dict[int, tuple]
+    robots: dict[tuple, tuple]
 
 
     def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None):
@@ -25,15 +25,18 @@ class State:
             State.walls = dict(((i, j), True) for (i, j) in initial[WALLS])
             self.taps = initial[TAPS]
             self.plants = initial[PLANTS]
-            self.robots = initial[ROBOTS]
+            self.robots = dict(
+                ((i, j), (id, load, capacity))
+                for id, (i, j, load, capacity) in initial[ROBOTS].items()
+            )
 
         # If we construct using size, walls, taps, plants, robots
         else:
             State.size = size
             State.walls = walls
-            self.taps = taps
-            self.plants = plants
-            self.robots = robots
+            self.taps = dict(taps)
+            self.plants = dict(plants)
+            self.robots = dict(robots)
 
 
 class WateringProblem(search.Problem):
@@ -50,66 +53,110 @@ class WateringProblem(search.Problem):
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
         possible_successors = []
         new_robots = state.robots
-        for key, robot in state.robots.items():
-            x = robot[0]
-            y = robot[1]
-            load = robot[2]
-            capacity = robot[3]
+        for (x, y), (id, load, capacity) in state.robots.items():
 
             # If the robot can move left
             if x - 1 >= 0 and State.walls.get((x - 1, y)) is None:
 
                 # Changing the robot's position
-                new_robot_tuple = (x + 1,  y, load, capacity)
+                new_robot_key_tuple = (x - 1,  y)
+                new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
-                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+                new_state = State(size = state.size,
+                                  walls = state.walls,
+                                  taps = state.taps,
+                                  plants = state.plants,
+                                  robots = state.robots)
+                del new_state.robots[(x - 1, y)]
+                new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"LEFT{{{key}}}", new_state))
+                possible_successors.append((f"LEFT{{{id}}}", new_state))
 
 
             # If the robot can move right
             if x + 1 < State.size[0] and State.walls.get((x + 1, y)) is None:
 
                 # Changing the robot's position
-                new_robot_tuple = (x + 1, y, load, capacity)
+                new_robot_key_tuple = (x + 1,  y)
+                new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
-                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+                new_state = State(size = state.size,
+                                  walls = state.walls,
+                                  taps = state.taps,
+                                  plants = state.plants,
+                                  robots = state.robots)
+                del new_state.robots[(x + 1, y)]
+                new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"RIGHT{{{key}}}", new_state))
+                possible_successors.append((f"RIGHT{{{id}}}", new_state))
 
 
             # If the robot can move down
             if y - 1 >= 0 and State.walls.get((x, y - 1)) is None:
 
                 # Changing the robot's position
-                new_robot_tuple = (x, y - 1, load, capacity)
+                new_robot_key_tuple = (x,  y - 1)
+                new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
-                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+                new_state = State(size = state.size,
+                                  walls = state.walls,
+                                  taps = state.taps,
+                                  plants = state.plants,
+                                  robots = state.robots)
+                del new_state.robots[(x, y - 1)]
+                new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"DOWN{{{key}}}", new_state))
+                possible_successors.append((f"DOWN{{{id}}}", new_state))
 
             # If the robot can move up
             if y + 1 < State.size[1] and State.walls.get((x, y + 1)) is None:
 
                 # Changing the robot's position
-                new_robot_tuple = (x, y + 1, load, capacity)
+                new_robot_key_tuple = (x,  y + 1)
+                new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
-                new_state = State(state.size, state.walls, state.taps, state.plants, new_robot_tuple)
+                new_state = State(size = state.size,
+                                  walls = state.walls,
+                                  taps = state.taps,
+                                  plants = state.plants,
+                                  robots = state.robots)
+                del new_state.robots[(x, y + 1)]
+                new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"UP{{{key}}}", new_state))
+                possible_successors.append((f"UP{{{id}}}", new_state))
 
 
-            # We now want to check whether the robot is on a plant it can water
-            # We don't care whether there is a plant that needs 0 WU or if there isn't a plant at all
-            water_needed_in_plant_under_robot = state.plants.get((x, y), 0)
+
+            # We want to check whether the robot has any WU on it
+            if load > 0:
+
+                # We now want to check whether the robot is on a plant it can water
+                # We don't care whether there is a plant that needs 0 WU or if there isn't a plant at all
+                water_needed_in_plant_under_robot = state.plants.get((x, y), 0)
+
+                if water_needed_in_plant_under_robot == 0:
+                    break
+
+                # For testing:
+                if water_needed_in_plant_under_robot < 0:
+                    print("ERROR WATER NEEDED IN PLANT IS NEGATIVE")
+                    break
+
+
+                # Changing the robot's load
+
+
+                possible_successors.append((f"POUR{{{key}}}", new_state))
+
+
 
         return possible_successors
 
