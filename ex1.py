@@ -224,12 +224,6 @@ class WateringProblem(search.Problem):
         return possible_successors
 
 
-
-
-
-
-
-
     def goal_test(self, state: State) -> bool:
         """ given a state, checks if this is the goal state, compares to the created goal state returns True/False"""
         # If there is a plant which still needs water, we have not reached the goal yet.
