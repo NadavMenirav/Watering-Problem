@@ -236,12 +236,12 @@ class WateringProblem(search.Problem):
     def h_astar(self, node):
         """ This is the heuristic. It gets a node (not a state)
         and returns a goal distance estimate"""
-        return 0;
+        return sum(node.state.plants.values())
 
     def h_gbfs(self, node):
         """ This is the heuristic. It gets a node (not a state)
         and returns a goal distance estimate"""
-        return 0;
+        return sum(node.state.plants.values())
 
 
 def create_watering_problem(game):
