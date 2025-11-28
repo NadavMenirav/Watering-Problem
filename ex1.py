@@ -127,6 +127,8 @@ class WateringProblem(search.Problem):
                                   taps = state.taps,
                                   plants = state.plants,
                                   robots = state.robots)
+
+                # Deleting the robot from its previous position and adding the new position
                 del new_state.robots[(x, y + 1)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -152,9 +154,30 @@ class WateringProblem(search.Problem):
 
 
                 # Changing the robot's load
+                new_robot_key_tuple = (x, y)
+                new_robot_value_tuple = (id, load - 1, capacity)
 
+                # Changing the plant
+                new_plant_key_tuple = (x, y)
+                new_plant_value = water_needed_in_plant_under_robot - 1
 
-                possible_successors.append((f"POUR{{{key}}}", new_state))
+                # Creating the new state
+                new_state = State(size = state.size,
+                                  walls = state.walls,
+                                  taps = state.taps,
+                                  plants = state.plants,
+                                  robots = state.robots)
+
+                # Deleting the previous state of robot and inserting the new one
+                del new_state.robots[(x, y)]
+                new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
+
+                # Deleting the previous state of plant and inserting the new one
+                del new_state.plants[(x, y)]
+                new_state.plants[new_plant_key_tuple] = new_plant_value
+
+                # Inserting the new state to the possible next states
+                possible_successors.append((f"POUR{{{id}}}", new_state))
 
 
 
