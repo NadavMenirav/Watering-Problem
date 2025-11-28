@@ -55,7 +55,7 @@ class WateringProblem(search.Problem):
             y = robot[1]
 
             # If the robot can move left
-            if x - 1 >= 0 and State.walls.get((x - 1, y), None) is None:
+            if x - 1 >= 0 and State.walls.get((x - 1, y)) is None:
 
                 # Changing the robot's position
                 new_robot_tuple = (x + 1,  y, robot[2], robot[3])
@@ -68,7 +68,7 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move right
-            if x + 1 < State.size[0] and (x + 1, y) not in State.walls:
+            if x + 1 < State.size[0] and State.walls.get((x + 1, y)) is None:
 
                 # Changing the robot's position
                 new_robot_tuple = (x + 1, y, robot[2], robot[3])
@@ -81,7 +81,7 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move down
-            if y - 1 >= 0 and (x, y - 1) not in State.walls:
+            if y - 1 >= 0 and State.walls.get((x, y - 1)) is None:
 
                 # Changing the robot's position
                 new_robot_tuple = (x, y - 1, robot[2], robot[3])
@@ -93,7 +93,7 @@ class WateringProblem(search.Problem):
                 possible_successors.append(new_state)
 
             # If the robot can move up
-            if y + 1 < State.size[1] and (x, y + 1) not in State.walls:
+            if y + 1 < State.size[1] and State.walls.get((x, y + 1)) is None:
 
                 # Changing the robot's position
                 new_robot_tuple = (x, y + 1, robot[2], robot[3])
