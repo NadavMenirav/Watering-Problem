@@ -237,7 +237,55 @@ class WateringProblem(search.Problem):
 
         # This is an admissible heuristic, we need at least the remaining WU for the plants,
         # plus the remaining WU the robots need to load
-        return 2 * sum(node.state.plants.values()) - sum(load for (id, load, capacity) in node.state.robots.values())
+        # In addition, we calculate the shortest path a robot need to do in order to reach a state it can water a plant
+        wu_needed =  (2 * sum(node.state.plants.values())
+                      - sum(load for (id, load, capacity) in node.state.robots.values()))
+
+        # This represents the shortest path any robot need to do in order to help
+        shortest_path_to_water = float('inf')
+
+        # This represents the shortest path the current robot need to do to help
+        current_shortest = float('inf')
+
+        # This represents the shortest path from the current robot to a tap
+        current_shortest_path_to_tap = float('inf')
+
+        # This represents the shortest path from the current robot to a plant
+        current_shortest_path_to_plant = float('inf')
+
+        # This represents whether all the
+
+        for (x_robot, y_robot), (id, load, capacity) in node.state.robots.items():
+
+            # For every robot, if the robot has WU on him, he can either go to a tap or go to a plant
+
+            # Now we calculate the plant closest to him, if all plants are watered we return -1
+            current_shortest_path_to_plant = min(
+                (
+                    abs(x_robot - x_plant) + abs(y_robot - y_plant)
+                    for ((x_plant, y_plant), remaining_wu) in node.state.plants.items()
+                    if remaining_wu > 0
+                ),
+                default = -1
+            )
+
+            # If all plants are watered we return the heuristic 0
+            if current_shortest_path_to_plant == -1:
+                return 0
+
+            # Now we calculate its closest tap
+            current_shortest_path_to_tap = min(
+                (
+                    abs(x_robot - x_tap) + abs(y_robot - y_tap)
+                    for ((x_tap, y_tap), remaining_wu) in node.state.taps.items()
+                    if remaining_wu > 0
+                ),
+                default = -1
+            )
+
+            # If all taps are empty (and not all plants are fully watered) we return infinity
+            if current_shortest_path_to_tap == -1:
+                return float('inf')
 
     def h_gbfs(self, node):
         """ This is the heuristic. It gets a node (not a state)

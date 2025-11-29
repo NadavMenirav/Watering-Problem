@@ -474,7 +474,7 @@ problem_12x12_snake_hard = {
 
 def main():
     start = time.time()
-    problem = [problem_hard6]
+    problem = [problem1, problem2, problem3, problem4, problem5_deadend, problem6, problem7]
     for p in problem:
         for a in ['astar', 'gbfs']:
             solve_problems(p, a)
