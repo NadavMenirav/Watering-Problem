@@ -38,6 +38,21 @@ class State:
             self.plants = dict(plants)
             self.robots = dict(robots)
 
+    def __hash__(self):
+        return hash((
+            tuple(sorted(self.walls.items())),
+            tuple(sorted(self.taps.items())),
+            tuple(sorted(self.plants.items())),
+            tuple(sorted(self.robots.items())),
+        ))
+
+    def __eq__(self, other):
+        return (
+                self.walls == other.walls and
+                self.taps == other.taps and
+                self.plants == other.plants and
+                self.robots == other.robots)
+
 
 class WateringProblem(search.Problem):
     """This class implements a pressure plate problem"""
@@ -231,6 +246,8 @@ class WateringProblem(search.Problem):
         # This is an admissible heuristic, we need at least the remaining WU for the plants,
         # plus the remaining WU the robots need to load
         return 2 * sum(node.state.plants.values()) - sum(load for (id, load, capacity) in node.state.robots.values())
+
+
 
 
 def create_watering_problem(game):
