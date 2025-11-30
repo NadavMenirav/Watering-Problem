@@ -69,6 +69,9 @@ class WateringProblem(search.Problem):
         Don't forget to set the goal or implement the goal test"""
         search.Problem.__init__(self, initial)
         self.initial = State(initial = initial)
+        self.cache = {}
+        self.hit = 0
+        self.miss = 0
 
 
     def successor(self, state: State):
@@ -235,13 +238,20 @@ class WateringProblem(search.Problem):
             if value != 0: return False
 
         # All plants are watered
+        print(f"hit: {self.hit}, miss: {self.miss}")
         return True
 
 
     def h_astar(self, node):
         """ This is the heuristic. It gets a node (not a state)
         and returns a goal distance estimate"""
+        cache_val = self.cache.get(node.state)
 
+        if cache_val is not None:
+            self.hit += 1
+            return cache_val
+
+        self.miss += 1
         # This is an admissible heuristic, we need at least the remaining WU for the plants,
         # plus the remaining WU the robots need to load
         # In addition, we calculate the shortest path a robot need to do in order to reach a state it can water a plant
@@ -329,7 +339,9 @@ class WateringProblem(search.Problem):
 
             if current_shortest < shortest_path_to_water: shortest_path_to_water = current_shortest
 
-        return shortest_path_to_water + wu_needed
+        cache_val = shortest_path_to_water + wu_needed
+        self.cache[node.state] = cache_val
+        return cache_val
 
     def h_gbfs(self, node):
         """ This is the heuristic. It gets a node (not a state)
