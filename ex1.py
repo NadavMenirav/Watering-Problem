@@ -36,9 +36,9 @@ class State:
         else:
             State.size = size
             State.walls = walls
-            self.taps = dict(taps)
-            self.plants = dict(plants)
-            self.robots = dict(robots)
+            self.taps = taps
+            self.plants = plants
+            self.robots = robots
             self.hash = None
 
     def __hash__(self):
@@ -91,7 +91,7 @@ class WateringProblem(search.Problem):
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = state.robots)
+                                  robots = dict(state.robots))
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -111,7 +111,7 @@ class WateringProblem(search.Problem):
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = state.robots)
+                                  robots = dict(state.robots))
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -131,7 +131,7 @@ class WateringProblem(search.Problem):
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = state.robots)
+                                  robots = dict(state.robots))
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -150,7 +150,7 @@ class WateringProblem(search.Problem):
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = state.robots)
+                                  robots = dict(state.robots))
 
                 # Deleting the robot from its previous position and adding the new position
                 del new_state.robots[(x, y)]
@@ -181,8 +181,8 @@ class WateringProblem(search.Problem):
                     new_state = State(size = state.size,
                                       walls = state.walls,
                                       taps = state.taps,
-                                      plants = state.plants,
-                                      robots = state.robots)
+                                      plants = dict(state.plants),
+                                      robots = dict(state.robots))
 
                     # Deleting the previous state of robot and inserting the new one
                     del new_state.robots[(x, y)]
@@ -214,9 +214,9 @@ class WateringProblem(search.Problem):
                     # Creating the new state
                     new_state = State(size = state.size,
                                       walls = state.walls,
-                                      taps = state.taps,
+                                      taps = dict(state.taps),
                                       plants = state.plants,
-                                      robots = state.robots)
+                                      robots = dict(state.robots))
 
                     # Deleting the previous state of robot and inserting the new one
                     del new_state.robots[(x, y)]
