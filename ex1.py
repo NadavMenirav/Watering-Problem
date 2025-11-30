@@ -55,7 +55,6 @@ class State:
 
     def __eq__(self, other):
         return (
-                self.walls == other.walls and
                 self.taps == other.taps and
                 self.plants == other.plants and
                 self.robots == other.robots)
