@@ -72,6 +72,7 @@ class WateringProblem(search.Problem):
         search.Problem.__init__(self, initial)
         self.initial = State(initial = initial)
         self.cache = {}
+        self.upper_bound = float("inf")
 
         # size[0] is the height - number of rows
         # size[1] is the width - number of height
@@ -103,6 +104,12 @@ class WateringProblem(search.Problem):
                     self.legal_moves[x][y][2] = True
                 if y + 1 < width and walls.get((x, y + 1)) is None:
                     self.legal_moves[x][y][3] = True
+
+
+    def gbfs(self, f):
+        f = utils.memoize(f, 'f')
+        result = search.graph_search(self, utils.PriorityQueue(min, f))[1]
+        return result
 
     def successor(self, state: State):
 
@@ -300,6 +307,9 @@ class WateringProblem(search.Problem):
         if cache_val is not None:
             return cache_val
 
+        if self.upper_bound == float('inf'):
+            self.upper_bound = self.gbfs(self.h_gbfs)
+
         # This is an admissible heuristic, we need at least the remaining WU for the plants,
         # plus the remaining WU the robots need to load
         # In addition, we calculate the shortest path a robot need to do in order to reach a state it can water a plant
@@ -387,9 +397,13 @@ class WateringProblem(search.Problem):
 
             if current_shortest < shortest_path_to_water: shortest_path_to_water = current_shortest
 
-        cache_val = shortest_path_to_water + wu_needed
-        self.cache[node.state] = cache_val
-        return cache_val
+        heuristic = shortest_path_to_water + wu_needed
+
+        if heuristic + node.path_cost > self.upper_bound:
+            self.cache[node.state] = float('inf')
+            return float('inf')
+        self.cache[node.state] = heuristic
+        return heuristic
 
     def h_gbfs(self, node):
         """ This is the heuristic. It gets a node (not a state)
