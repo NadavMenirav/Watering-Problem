@@ -17,9 +17,10 @@ class State:
     plants: dict[tuple, int]
     robots: dict[tuple, tuple]
     hash = None
+    last_move = None
 
 
-    def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None):
+    def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None, last_move = None):
         # If we construct using initial
         if initial is not None:
             State.size = initial[SIZE]
@@ -31,6 +32,7 @@ class State:
                 for id, (i, j, load, capacity) in initial[ROBOTS].items()
             )
             self.hash = None
+            self.last_move = None
 
         # If we construct using size, walls, taps, plants, robots
         else:
@@ -40,6 +42,7 @@ class State:
             self.plants = plants
             self.robots = robots
             self.hash = None
+            self.last_move = last_move
 
     def __hash__(self):
         if self.hash is not None:
@@ -125,11 +128,13 @@ class WateringProblem(search.Problem):
                     new_plant_value = water_needed_in_plant_under_robot - 1
 
                     # Creating the new state
+                    move = f"POUR{{{id}}}"
                     new_state = State(size = state.size,
                                       walls = state.walls,
                                       taps = state.taps,
                                       plants = dict(state.plants),
-                                      robots = dict(state.robots))
+                                      robots = dict(state.robots),
+                                      last_move = move)
 
                     # Deleting the previous state of robot and inserting the new one
                     del new_state.robots[(x, y)]
@@ -140,7 +145,7 @@ class WateringProblem(search.Problem):
                     new_state.plants[new_plant_key_tuple] = new_plant_value
 
                     # Inserting the new state to the possible next states
-                    possible_successors.append((f"POUR{{{id}}}", new_state))
+                    possible_successors.append((move, new_state))
 
                     # If there is only one robot, there is no reason not to pour all he has onto the robot
                     if number_of_robots == 1: continue
@@ -162,11 +167,13 @@ class WateringProblem(search.Problem):
                     new_tap_value = water_available_in_tap_under_robot - 1
 
                     # Creating the new state
+                    move = f"LOAD{{{id}}}"
                     new_state = State(size = state.size,
                                       walls = state.walls,
                                       taps = dict(state.taps),
                                       plants = state.plants,
-                                      robots = dict(state.robots))
+                                      robots = dict(state.robots),
+                                      last_move = move)
 
                     # Deleting the previous state of robot and inserting the new one
                     del new_state.robots[(x, y)]
@@ -177,7 +184,7 @@ class WateringProblem(search.Problem):
                     new_state.taps[new_tap_key_tuple] = new_tap_value
 
                     # Inserting the new state to the possible next states
-                    possible_successors.append((f"LOAD{{{id}}}", new_state))
+                    possible_successors.append((move, new_state))
 
                     # If there is one robot he should fill his tank until full
                     # Or until he has enough WU to water all plants
@@ -185,84 +192,92 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move UP
-            if self.legal_moves[x][y][0] and state.robots.get((x - 1, y)) is None:
+            if self.legal_moves[x][y][0] and state.robots.get((x - 1, y)) is None and state.last_move != f"DOWN{{{id}}}":
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x - 1,  y)
                 new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
+                move = f"UP{{{id}}}"
                 new_state = State(size = state.size,
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = dict(state.robots))
+                                  robots = dict(state.robots),
+                                  last_move = move)
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"UP{{{id}}}", new_state))
+                possible_successors.append((move, new_state))
 
 
             # If the robot can move DOWN
-            if self.legal_moves[x][y][1] and state.robots.get((x + 1, y)) is None:
+            if self.legal_moves[x][y][1] and state.robots.get((x + 1, y)) is None and state.last_move != f"UP{{{id}}}":
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x + 1,  y)
                 new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
+                move = f"DOWN{{{id}}}"
                 new_state = State(size = state.size,
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = dict(state.robots))
+                                  robots = dict(state.robots),
+                                  last_move = move)
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"DOWN{{{id}}}", new_state))
+                possible_successors.append((move, new_state))
 
 
             # If the robot can move LEFT
-            if self.legal_moves[x][y][2] and state.robots.get((x, y - 1)) is None:
+            if self.legal_moves[x][y][2] and state.robots.get((x, y - 1)) is None and state.last_move != f"RIGHT{{{id}}}":
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x,  y - 1)
                 new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
+                move = f"LEFT{{{id}}}"
                 new_state = State(size = state.size,
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = dict(state.robots))
+                                  robots = dict(state.robots),
+                                  last_move = move)
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"LEFT{{{id}}}", new_state))
+                possible_successors.append((move, new_state))
 
             # If the robot can move RIGHT
-            if self.legal_moves[x][y][3] and state.robots.get((x, y + 1)) is None:
+            if self.legal_moves[x][y][3] and state.robots.get((x, y + 1)) is None and state.last_move != f"LEFT{{{id}}}":
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x,  y + 1)
                 new_robot_value_tuple = (id, load, capacity)
 
                 # Creating the new state
+                move = f"RIGHT{{{id}}}"
                 new_state = State(size = state.size,
                                   walls = state.walls,
                                   taps = state.taps,
                                   plants = state.plants,
-                                  robots = dict(state.robots))
+                                  robots = dict(state.robots),
+                                  last_move = move)
 
                 # Deleting the robot from its previous position and adding the new position
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
                 # Adding the new state to the result of all possible states we can go to
-                possible_successors.append((f"RIGHT{{{id}}}", new_state))
+                possible_successors.append((move, new_state))
 
         return possible_successors
 
