@@ -119,7 +119,7 @@ class WateringProblem(search.Problem):
 
 
             # We now want to check whether the robot can load more WU from a tap
-            if capacity - load > 0:
+            if capacity - load > 0 and load <= sum(state.plants.values()):
 
                 # We now want to check whether the robot is on a tap it can load water from
                 # We don't care whether there is a tap that can give 0 WU or if there isn't a tap at all
@@ -153,7 +153,7 @@ class WateringProblem(search.Problem):
 
                     # If there is one robot he should fill his tank until full
                     # Or until he has enough WU to water all plants
-                    if number_of_robots == 1 and load - sum(state.plants.values()) < 0: continue
+                    if number_of_robots == 1: continue
 
 
             # If the robot can move UP
