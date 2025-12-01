@@ -70,6 +70,34 @@ class WateringProblem(search.Problem):
         self.initial = State(initial = initial)
         self.cache = {}
 
+        # size[0] is the height - number of rows
+        # size[1] is the width - number of height
+        height = self.initial.size[0]
+        width = self.initial.size[1]
+
+        # A matrix of the legal moves from every square.
+        # Every entry represents the legal moves that can be made from the corresponding square.
+        # It is a four booleans tuple:
+        # 1st entry for moving up
+        # 2nd entry for moving down
+        # 3rd entry for moving left
+        # 4th entry for moving right
+        self.legal_moves = [[[False, False, False, False] for _ in range(height) for _ in range(width)]]
+
+        walls = self.initial.walls
+
+        # Now we want to initialize the matrix with the legal moves available
+        for x in range(height):
+            for y in range(width):
+                if x - 1 >= 0 and walls.get((x - 1, y)) is None:
+                    self.legal_moves[x][y][0] = True
+                if x + 1 < height and walls.get((x + 1, y)) is None:
+                    self.legal_moves[x][y][1] = True
+                if y - 1 >= 0 and walls.get((x, y - 1)) is None:
+                    self.legal_moves[x][y][2] = True
+                if y + 1 < width and walls.get((x, y + 1)) is None:
+                    self.legal_moves[x][y][3] = True
+
     def successor(self, state: State):
 
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
