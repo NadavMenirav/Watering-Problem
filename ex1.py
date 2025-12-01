@@ -82,7 +82,10 @@ class WateringProblem(search.Problem):
         # 2nd entry for moving down
         # 3rd entry for moving left
         # 4th entry for moving right
-        self.legal_moves = [[[False, False, False, False] for _ in range(height) for _ in range(width)]]
+        self.legal_moves = [
+            [[False, False, False, False] for _ in range(width)]
+            for _ in range(height)
+        ]
 
         walls = self.initial.walls
 
@@ -182,7 +185,7 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move UP
-            if x - 1 >= 0 and State.walls.get((x - 1, y)) is None and state.robots.get((x - 1, y)) is None:
+            if self.legal_moves[x][y][0] and state.robots.get((x - 1, y)) is None:
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x - 1,  y)
@@ -202,7 +205,7 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move DOWN
-            if x + 1 < State.size[0] and State.walls.get((x + 1, y)) is None and state.robots.get((x + 1, y)) is None:
+            if self.legal_moves[x][y][1] and state.robots.get((x + 1, y)) is None:
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x + 1,  y)
@@ -222,7 +225,7 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move LEFT
-            if y - 1 >= 0 and State.walls.get((x, y - 1)) is None and state.robots.get((x, y - 1)) is None:
+            if self.legal_moves[x][y][2] and state.robots.get((x, y - 1)) is None:
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x,  y - 1)
@@ -241,7 +244,7 @@ class WateringProblem(search.Problem):
                 possible_successors.append((f"LEFT{{{id}}}", new_state))
 
             # If the robot can move RIGHT
-            if y + 1 < State.size[1] and State.walls.get((x, y + 1)) is None and state.robots.get((x, y + 1)) is None:
+            if self.legal_moves[x][y][3] and state.robots.get((x, y + 1)) is None:
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x,  y + 1)
