@@ -112,11 +112,6 @@ class WateringProblem(search.Problem):
                     self.legal_moves[x][y][3] = True
 
 
-    def gbfs(self, f):
-        f = utils.memoize(f, 'f')
-        result = search.graph_search(self, utils.PriorityQueue(min, f))[1]
-        return result
-
     def successor(self, state: State):
 
         """ Generates the successor states returns [(action, achieved_states, ...)]"""
@@ -330,9 +325,6 @@ class WateringProblem(search.Problem):
 
         if cache_val is not None:
             return cache_val
-
-        if self.upper_bound == float('inf'):
-            self.upper_bound = self.gbfs(self.h_gbfs)
 
         # This is an admissible heuristic, we need at least the remaining WU for the plants,
         # plus the remaining WU the robots need to load
