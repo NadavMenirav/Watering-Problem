@@ -71,6 +71,7 @@ class State:
 
 class WateringProblem(search.Problem):
     """This class implements a pressure plate problem"""
+    distances: dict[tuple[tuple[int, int], tuple[int, int]], int]
 
     def __init__(self, initial):
         """ Constructor only needs the initial state.
@@ -110,6 +111,41 @@ class WateringProblem(search.Problem):
                     self.legal_moves[x][y][2] = True
                 if y + 1 < width and walls.get((x, y + 1)) is None:
                     self.legal_moves[x][y][3] = True
+
+
+    def BFS(self, coordinate: tuple[int, int]):
+        x = coordinate[0]
+        y = coordinate[1]
+
+        q = (utils.FIFOQueue())
+        q.append((coordinate, -1))
+        closed = set()
+
+        self.distances[(coordinate, coordinate)] = 0
+
+        while len(q) > 0:
+            current = q.pop()
+            current_coordinate = current[0]
+            x = current[0][0]
+            y = current[0][1]
+            parent_distance = current[1]
+
+            if current_coordinate in closed:
+                continue
+
+            self.distances[(coordinate, current_coordinate)] = parent_distance + 1
+            self.distances[(current_coordinate, coordinate)] = parent_distance + 1
+
+            closed.add(current_coordinate)
+
+            if self.legal_moves[x][y][0]:
+                q.append(((x - 1, y), parent_distance + 1))
+            if self.legal_moves[x][y][1]:
+                q.append(((x + 1, y), parent_distance + 1))
+            if self.legal_moves[x][y][2]:
+                q.append(((x, y - 1), parent_distance + 1))
+            if self.legal_moves[x][y][3]:
+                q.append(((x, y + 1), parent_distance + 1))
 
 
     def successor(self, state: State):
