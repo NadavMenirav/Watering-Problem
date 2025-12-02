@@ -3,6 +3,7 @@ import time
 import ex1
 import search
 
+VERBOSE = False
 
 def run_problem(func, targs=(), kwargs=None):
     if kwargs is None:
@@ -14,8 +15,6 @@ def run_problem(func, targs=(), kwargs=None):
     except Exception as e:
         result = (-3, e)
     return result
-
-
 # check_problem: problem, search_method, timeout
 # timeout_exec: search_method, targs=[problem], timeout_duration=timeout
 def solve_problems(problem, algorithm):
@@ -24,25 +23,25 @@ def solve_problems(problem, algorithm):
     except Exception as e:
         print("Error creating problem: ", e)
         return None
-
     if algorithm == "gbfs":
-        result = run_problem((lambda p: search.greedy_best_first_graph_search(p, p.h_gbfs)), targs=[p])
+        result = run_problem((lambda p: search.greedy_best_first_graph_search(p, p.h_gbfs)),targs=[p])
     else:
         result = run_problem((lambda p: search.astar_search(p, p.h_astar)), targs=[p])
 
     if result and isinstance(result[0], search.Node):
         solve = result[0].path()[::-1]
         solution = [pi.action for pi in solve][1:]
-        print(len(solution), solution)
+        return len(solution)
     else:
-        print("no solution")
+        return None
 
 
-# Optimal : 20
+
+#Optimal : 20
 Problem_pdf = {
-    "Size": (3, 3),
-    "Walls": {(0, 1), (2, 1)},
-    "Taps": {(1, 1): 6},
+    "Size":   (3, 3),
+    "Walls":  {(0, 1), (2, 1)},
+    "Taps":   {(1, 1): 6},
     "Plants": {(2, 0): 2, (0, 2): 3},
     "Robots": {10: (1, 0, 0, 2), 11: (1, 2, 0, 2)},
 }
@@ -60,14 +59,14 @@ Problem_pdf = {
 # Problem 1: Tiny, no walls
 # One robot, one tap, one plant
 # -------------------------
-# Optimal : 8
+#Optimal : 8
 problem1 = {
-    "Size": (3, 3),
-    "Walls": set(),
-    "Taps": {(1, 1): 3},  # center
-    "Plants": {(0, 2): 2},  # top-right
+    "Size":   (3, 3),
+    "Walls":  set(),
+    "Taps":   {(1, 1): 3},        # center
+    "Plants": {(0, 2): 2},        # top-right
     "Robots": {
-        10: (2, 0, 0, 2),  # bottom-left, cap 2
+        10: (2, 0, 0, 2),         # bottom-left, cap 2
     },
 }
 
@@ -75,58 +74,61 @@ problem1 = {
 # Problem 2: Small with walls (your example-style)
 # Two robots, one tap, two plants, vertical walls
 # -------------------------
-# Optimal: 20
+#Optimal: 20
 problem2 = {
-    "Size": (3, 3),
-    "Walls": {(0, 1), (2, 1)},  # middle column walls in top & bottom rows
-    "Taps": {(1, 1): 6},  # center
+    "Size":  (3, 3),
+    "Walls": {(0, 1), (2, 1)},    # middle column walls in top & bottom rows
+    "Taps":  {(1, 1): 6},         # center
     "Plants": {
-        (0, 2): 3,  # top-right
-        (2, 0): 2,  # bottom-left
+        (0, 2): 3,                # top-right
+        (2, 0): 2,                # bottom-left
     },
     "Robots": {
-        10: (1, 0, 0, 2),  # middle-left
-        11: (1, 2, 0, 2),  # middle-right
+        10: (1, 0, 0, 2),         # middle-left
+        11: (1, 2, 0, 2),         # middle-right
     },
 }
+
+
+
 
 # -------------------------
 # Problem 3: Corridor with walls, 5x3, one robot shuttling
 # -------------------------
-# optimal: 28
+#optimal: 28
 problem3 = {
-    "Size": (5, 3),  # rows: 0..4, cols: 0..2
-    "Walls": {(1, 1), (3, 1)},  # walls in the middle column
+    "Size":  (5, 3),              # rows: 0..4, cols: 0..2
+    "Walls": {(1, 1), (3, 1)},    # walls in the middle column
     "Taps": {
-        (0, 0): 5,  # top-left
+        (0, 0): 5,                # top-left
     },
     "Plants": {
-        (4, 2): 4,  # bottom-right
+        (4, 2): 4,                # bottom-right
     },
     "Robots": {
-        10: (2, 0, 0, 2),  # middle-left, cap 2 → needs multiple trips
+        10: (2, 0, 0, 2),         # middle-left, cap 2 → needs multiple trips
     },
 }
 
 # -------------------------
 # Problem 4
 # -------------------------
-# optimal: 13
+#optimal: 13
 problem4 = {
-    "Size": (5, 5),
-    "Walls": {(0, 1), (1, 1), (2, 1), (0, 3), (1, 3), (2, 3)},  # two blocked cells
+    "Size":  (5, 5),
+    "Walls": {(0, 1),(1, 1),(2, 1), (0, 3),(1, 3),(2, 3)},    # two blocked cells
     "Taps": {
-        (3, 2): 1,  # top-left
-        (4, 2): 1,  # bottom-right
+        (3, 2): 1,                # top-left
+        (4, 2): 1,                # bottom-right
     },
     "Plants": {
-        (0, 2): 1,  # top-right
-        (1, 2): 1,  # bottom-left
-        # somewhere in middle-left
+        (0, 2): 1,                # top-right
+        (1, 2): 1,                # bottom-left
+                        # somewhere in middle-left
     },
     "Robots": {
-        10: (3, 1, 0, 1),  # near left side
-        11: (3, 3, 0, 1),  # near right side
+        10: (3, 1, 0, 1),         # near left side
+        11: (3, 3, 0, 1),         # near right side
     },
 }
 
@@ -135,14 +137,14 @@ problem4 = {
 # Good to test your dead-end pruning
 # -------------------------
 problem5_deadend = {
-    "Size": (3, 4),
+    "Size":  (3, 4),
     "Walls": set(),
     "Taps": {
-        (1, 1): 3,  # only 3 units in world
+        (1, 1): 3,                # only 3 units in world
     },
     "Plants": {
         (0, 3): 2,
-        (2, 3): 2,  # total need = 4 > 3 → impossible
+        (2, 3): 2,                # total need = 4 > 3 → impossible
     },
     "Robots": {
         10: (1, 0, 0, 2),
@@ -151,15 +153,15 @@ problem5_deadend = {
 # -------------------------
 # Problem 6:
 # -------------------------
-# optimal: 8
+#optimal: 8
 problem6 = {
-    "Size": (8, 8),
+    "Size":  (8, 8),
     "Walls": {
         # All cells except the corridor (1,0), (1,1), (1,2)
-        *((r, c)
-          for r in range(8)
-          for c in range(8)
-          if not (r == 1 and c in (0, 1, 2)))
+        *( (r, c)
+           for r in range(8)
+           for c in range(8)
+           if not (r == 1 and c in (0, 1, 2)) )
     },
     "Taps": {
         (1, 1): 3,
@@ -168,22 +170,22 @@ problem6 = {
         (1, 2): 3,
     },
     "Robots": {
-        10: (1, 0, 0, 3),  # start left of tap, cap 3
+        10: (1, 0, 0, 3),   # start left of tap, cap 3
     },
 }
-# optimal: 21
+#optimal: 20
 problem7 = {
-    "Size": (4, 4),
+    "Size":  (4, 4),
 
     "Walls": set(),  # everything open
 
     "Taps": {
-        (2, 2): 18,  # center tap
+        (2, 2): 18,       # center tap
     },
 
     "Plants": {
-        (0, 3): 3,  # top-right
-        (3, 0): 3,  # bottom-left
+        (0, 3): 3,        # top-right
+        (3, 0): 3,        # bottom-left
         # total need = 8, tap has 18 (some slack)
     },
 
@@ -192,7 +194,6 @@ problem7 = {
         11: (2, 0, 0, 3),  # right of tap, capacity 3
     },
 }
-
 #optimal: 31
 problem_hard1 = {
     "Size":  (5, 6),
@@ -471,16 +472,50 @@ problem_12x12_snake_hard = {
     },
 }
 
+correct_answers = [0, 8, 20, 28, 13, None, 8, 21, 31, 24, 42, 25, 29, 33, 65, 106, 249, 343]
 
 def main():
+    problems = [(problem1,                  "problem1",                 8),
+               (problem2,                   "problem2",                 20),
+               (problem3,                   "problem3",                 28),
+               (problem4,                   "problem4",                 13),
+               (problem5_deadend,           "problem5_deadend",         None),
+               (problem6,                   "problem6",                 8),
+               (problem7,                   "problem7",                 21),
+               (problem_hard1,              "problem_hard1",            31),
+               (problem_hard2,              "problem_hard2",            24),
+               (problem_hard3,              "problem_hard3",            24),
+               (problem_hard4,              "problem_hard4",            25),
+               (problem_hard5,              "problem_hard5",            29),
+               (problem_hard6,              "problem_hard6",            33),
+               (problem_load,               "problem_load",             65),
+               (problem_10x10_single,       "problem_10x10_single",     106),
+               (problem_12x12_snake,        "problem_12x12_snake",      249),
+               (problem_12x12_snake_hard,   "problem_12x12_snake_hard", 343)]
+    i = 1
+    is_failed = False
     start = time.time()
-    problem = [problem1, problem2, problem3, problem4, problem5_deadend, problem6, problem7, problem_hard1, problem_hard2, problem_hard3, problem_hard4, problem_hard5, problem_hard6, problem_load, problem_10x10_single, problem_12x12_snake, problem_12x12_snake_hard]
-    # problem = [problem1]
-    for p in problem:
-        for a in ['astar', 'gbfs']:
-            solve_problems(p, a)
+    for (problem, problem_name, expected_len) in problems:
+        print("------------------------------------------")
+        for a in ['astar','gbfs']:
+            print(f"Running {problem_name} with {a}")
+            algorithm_time_start    = time.time()
+            len                     = solve_problems(problem, a)
+            algorithm_time_end      = time.time()
+
+            if a == 'astar':
+                if len != expected_len:
+                    is_failed           = True
+                    print(f"{problem_name} FAILED. Took: {len} steps instead of {expected_len}")
+                else:
+                    print(f"PASSED {problem_name} in {algorithm_time_end - algorithm_time_start} seconds")
+            else:
+                print(f"Solved {problem_name} GBFS. {len} steps solution (instead of {expected_len}) was found in {algorithm_time_end - algorithm_time_start} seconds")
+        i += 1
+    print("------------------------------------------")
+    print(f"Final Result: {'SOME FAILED' if is_failed else 'ALL PASSED'}")
     end = time.time()
-    print('Submission took:', end - start, 'seconds.')
+    print('Submission took:', end-start, 'seconds.')
 
 
 if __name__ == '__main__':

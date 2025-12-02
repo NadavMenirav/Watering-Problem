@@ -18,9 +18,11 @@ class State:
     robots: dict[tuple, tuple]
     hash = None
     last_move = None
+    plants_need = None
+    robots_load = None
 
 
-    def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None, last_move = None):
+    def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None, last_move = None, plants_need = None, robots_load = None):
         # If we construct using initial
         if initial is not None:
             State.size = initial[SIZE]
@@ -33,6 +35,8 @@ class State:
             )
             self.hash = None
             self.last_move = None
+            self.plants_need = sum(self.plants.values())
+            self.robots_load = sum(load for (id, load, capacity) in self.robots.values())
 
         # If we construct using size, walls, taps, plants, robots
         else:
@@ -43,6 +47,8 @@ class State:
             self.robots = robots
             self.hash = None
             self.last_move = last_move
+            self.plants_need = plants_need
+            self.robots_load = robots_load
 
     def __hash__(self):
         if self.hash is not None:
@@ -141,7 +147,9 @@ class WateringProblem(search.Problem):
                                       taps = state.taps,
                                       plants = dict(state.plants),
                                       robots = dict(state.robots),
-                                      last_move = move)
+                                      last_move = move,
+                                      plants_need = state.plants_need - 1,
+                                      robots_load = state.robots_load - 1)
 
                     # Deleting the previous state of robot and inserting the new one
                     del new_state.robots[(x, y)]
@@ -181,7 +189,9 @@ class WateringProblem(search.Problem):
                                       taps = dict(state.taps),
                                       plants = state.plants,
                                       robots = dict(state.robots),
-                                      last_move = move)
+                                      last_move = move,
+                                      plants_need = state.plants_need,
+                                      robots_load = state.robots_load + 1)
 
                     # Deleting the previous state of robot and inserting the new one
                     del new_state.robots[(x, y)]
@@ -214,7 +224,9 @@ class WateringProblem(search.Problem):
                                   taps = state.taps,
                                   plants = state.plants,
                                   robots = dict(state.robots),
-                                  last_move = move)
+                                  last_move = move,
+                                  plants_need = state.plants_need,
+                                  robots_load = state.robots_load)
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -237,7 +249,9 @@ class WateringProblem(search.Problem):
                                   taps = state.taps,
                                   plants = state.plants,
                                   robots = dict(state.robots),
-                                  last_move = move)
+                                  last_move = move,
+                                  plants_need = state.plants_need,
+                                  robots_load = state.robots_load)
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -260,7 +274,9 @@ class WateringProblem(search.Problem):
                                   taps = state.taps,
                                   plants = state.plants,
                                   robots = dict(state.robots),
-                                  last_move = move)
+                                  last_move = move,
+                                  plants_need = state.plants_need,
+                                  robots_load = state.robots_load)
                 del new_state.robots[(x, y)]
                 new_state.robots[new_robot_key_tuple] = new_robot_value_tuple
 
@@ -282,7 +298,9 @@ class WateringProblem(search.Problem):
                                   taps = state.taps,
                                   plants = state.plants,
                                   robots = dict(state.robots),
-                                  last_move = move)
+                                  last_move = move,
+                                  plants_need = state.plants_need,
+                                  robots_load = state.robots_load)
 
                 # Deleting the robot from its previous position and adding the new position
                 del new_state.robots[(x, y)]
@@ -319,8 +337,7 @@ class WateringProblem(search.Problem):
         # This is an admissible heuristic, we need at least the remaining WU for the plants,
         # plus the remaining WU the robots need to load
         # In addition, we calculate the shortest path a robot need to do in order to reach a state it can water a plant
-        wu_needed =  (2 * sum(node.state.plants.values())
-                      - sum(load for (id, load, capacity) in node.state.robots.values()))
+        wu_needed =  2 * node.state.plants_need - node.state.robots_load
 
         # This represents the shortest path any robot need to do in order to help
         shortest_path_to_water = float('inf')
