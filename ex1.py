@@ -147,6 +147,14 @@ class WateringProblem(search.Problem):
             if self.legal_moves[x][y][3]:
                 q.append(((x, y + 1), parent_distance + 1))
 
+    def bfs_distance(self, coordinate1: tuple[int, int], coordinate2: tuple[int, int]):
+        distance = self.distances.get((coordinate1, coordinate2))
+        if distance is not None:
+            return distance
+
+        self.BFS(coordinate1)
+        return self.distances.get((coordinate1, coordinate2))
+
 
     def successor(self, state: State):
 
@@ -390,6 +398,7 @@ class WateringProblem(search.Problem):
             # We use Manhattan distances
             current_shortest_path_to_plant = min(
                 (
+
                     abs(x_robot - x_plant) + abs(y_robot - y_plant)
                     for ((x_plant, y_plant), remaining_wu) in node.state.plants.items()
                     if remaining_wu > 0
