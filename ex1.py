@@ -78,6 +78,9 @@ class State:
             tuple(sorted(self.taps.items())),
             tuple(sorted(self.plants.items())),
             tuple(sorted(self.robots.items())),
+            self.objective,
+            self.current_active_robot,
+            self.active_only,
         ))
 
         return self.hash
@@ -86,7 +89,11 @@ class State:
         return (
                 self.taps == other.taps and
                 self.plants == other.plants and
-                self.robots == other.robots)
+                self.robots == other.robots and
+                self.objective == other.objective and
+                self.active_only == other.active_only and
+                self.current_active_robot == other.current_active_robot)
+
 
 
 class WateringProblem(search.Problem):
@@ -155,7 +162,7 @@ class WateringProblem(search.Problem):
         closed = set()
 
         self.distances[(coordinate, coordinate)] = 0
-        self.bfs_paths[(coordinate, coordinate)] = set()
+        self.bfs_paths[(coordinate, coordinate)] = {coordinate}
 
         while len(q) > 0:
             current = q.pop()
@@ -174,25 +181,25 @@ class WateringProblem(search.Problem):
 
             if self.legal_moves[x][y][0] and (x - 1, y) not in closed:
                 q.append(((x - 1, y), parent_distance + 1))
-                self.bfs_paths[coordinate, (x - 1, y)] = self.bfs_paths[coordinate, current_coordinate].union(
+                self.bfs_paths[coordinate, (x - 1, y)] = self.bfs_paths[(coordinate, current_coordinate)].union(
                     {(x - 1, y)}
                 )
 
             if self.legal_moves[x][y][1] and (x + 1, y) not in closed:
                 q.append(((x + 1, y), parent_distance + 1))
-                self.bfs_paths[coordinate, (x + 1, y)] = self.bfs_paths[coordinate, current_coordinate].union(
+                self.bfs_paths[coordinate, (x + 1, y)] = self.bfs_paths[(coordinate, current_coordinate)].union(
                     {(x + 1, y)}
                 )
 
             if self.legal_moves[x][y][2] and (x, y - 1) not in closed:
                 q.append(((x, y - 1), parent_distance + 1))
-                self.bfs_paths[coordinate, (x, y - 1)] = self.bfs_paths[coordinate, current_coordinate].union(
+                self.bfs_paths[coordinate, (x, y - 1)] = self.bfs_paths[(coordinate, current_coordinate)].union(
                     {(x, y - 1)}
                 )
 
             if self.legal_moves[x][y][3] and (x, y + 1) not in closed:
                 q.append(((x, y + 1), parent_distance + 1))
-                self.bfs_paths[coordinate, (x, y + 1)] = self.bfs_paths[coordinate, current_coordinate].union(
+                self.bfs_paths[coordinate, (x, y + 1)] = self.bfs_paths[(coordinate, current_coordinate)].union(
                     {(x, y + 1)}
                 )
 
@@ -432,7 +439,14 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move UP
-            if self.legal_moves[x][y][0] and state.robots.get((x - 1, y)) is None and state.last_move != f"DOWN{{{id}}}":
+            path_to_objective = self.bfs_paths.get(state.objective, (x, y)) or set()
+            if state.active_only and id == current_active and (x - 1, y) in path_to_objective:
+                print("UP???")
+            if (self.legal_moves[x][y][0]
+                    and state.robots.get((x - 1, y)) is None
+                    and state.last_move != f"DOWN{{{id}}}"
+                    and (not state.active_only
+                         or (state.active_only and id == current_active and (x - 1, y) in path_to_objective))):
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x - 1,  y)
@@ -450,7 +464,9 @@ class WateringProblem(search.Problem):
                                   robots_load = state.robots_load,
                                   taps_have = state.taps_have,
                                   robot_last_moves = state.robots_last_moves,
-                                  current_active_robot = current_active)
+                                  current_active_robot = current_active,
+                                  objective = state.objective,
+                                  active_only = state.active_only)
 
                 # robot last moves
                 del new_state.robots_last_moves[id]
@@ -465,7 +481,13 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move DOWN
-            if self.legal_moves[x][y][1] and state.robots.get((x + 1, y)) is None and state.last_move != f"UP{{{id}}}":
+            if state.active_only and id == current_active and (x + 1, y) in path_to_objective:
+                print("DOWN???")
+            if (self.legal_moves[x][y][1]
+                    and state.robots.get((x + 1, y)) is None
+                    and state.last_move != f"UP{{{id}}}"
+                    and (not state.active_only
+                         or (state.active_only and id == current_active and (x + 1, y) in path_to_objective))):
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x + 1,  y)
@@ -483,7 +505,9 @@ class WateringProblem(search.Problem):
                                   robots_load = state.robots_load,
                                   taps_have = state.taps_have,
                                   robot_last_moves = state.robots_last_moves,
-                                  current_active_robot = current_active)
+                                  current_active_robot = current_active,
+                                  objective=state.objective,
+                                  active_only=state.active_only)
 
                 # robot last moves
                 del new_state.robots_last_moves[id]
@@ -498,7 +522,13 @@ class WateringProblem(search.Problem):
 
 
             # If the robot can move LEFT
-            if self.legal_moves[x][y][2] and state.robots.get((x, y - 1)) is None and state.last_move != f"RIGHT{{{id}}}":
+            if state.active_only and id == current_active and (x, y - 1) in path_to_objective:
+                print("LEFT???")
+            if (self.legal_moves[x][y][2]
+                    and state.robots.get((x, y - 1)) is None
+                    and state.last_move != f"RIGHT{{{id}}}"
+                    and (not state.active_only
+                         or (state.active_only and id == current_active and (x, y - 1) in path_to_objective))):
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x,  y - 1)
@@ -516,7 +546,9 @@ class WateringProblem(search.Problem):
                                   robots_load = state.robots_load,
                                   taps_have = state.taps_have,
                                   robot_last_moves = state.robots_last_moves,
-                                  current_active_robot = current_active)
+                                  current_active_robot = current_active,
+                                  objective=state.objective,
+                                  active_only=state.active_only)
 
                 # robot last moves
                 del new_state.robots_last_moves[id]
@@ -530,7 +562,13 @@ class WateringProblem(search.Problem):
                     possible_successors.append((move, new_state))
 
             # If the robot can move RIGHT
-            if self.legal_moves[x][y][3] and state.robots.get((x, y + 1)) is None and state.last_move != f"LEFT{{{id}}}":
+            if state.active_only and id == current_active and (x, y + 1) in path_to_objective:
+                print("RIGHT???")
+            if (self.legal_moves[x][y][3]
+                    and state.robots.get((x, y + 1)) is None
+                    and state.last_move != f"LEFT{{{id}}}"
+                    and (not state.active_only
+                         or (state.active_only and id == current_active and (x, y + 1) in path_to_objective))):
 
                 # Changing the robot's position
                 new_robot_key_tuple = (x,  y + 1)
@@ -548,7 +586,9 @@ class WateringProblem(search.Problem):
                                   robots_load = state.robots_load,
                                   taps_have = state.taps_have,
                                   robot_last_moves = state.robots_last_moves,
-                                  current_active_robot = current_active)
+                                  current_active_robot = current_active,
+                                  objective=state.objective,
+                                  active_only=state.active_only)
 
                 # robot last moves
                 del new_state.robots_last_moves[id]
