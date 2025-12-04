@@ -85,6 +85,7 @@ class State:
 class WateringProblem(search.Problem):
     """This class implements a pressure plate problem"""
     distances: dict[tuple[tuple[int, int], tuple[int, int]], int]
+    bfs_paths: dict[tuple[tuple[int, int], tuple[int, int]], set[tuple[int, int]]]
 
     def __init__(self, initial):
         """ Constructor only needs the initial state.
@@ -93,6 +94,7 @@ class WateringProblem(search.Problem):
         self.initial = State(initial = initial)
         self.cache = {}
         self.distances = {}
+        self.bfs_paths = {}
 
         # size[0] is the height - number of rows
         # size[1] is the width - number of height
@@ -112,6 +114,11 @@ class WateringProblem(search.Problem):
         ]
 
         walls = self.initial.walls
+
+
+        # BFS paths
+
+
 
         # Initializing the bfs for the plants and taps
         for ((i, j), needed) in self.initial.plants.items():
@@ -141,6 +148,7 @@ class WateringProblem(search.Problem):
         closed = set()
 
         self.distances[(coordinate, coordinate)] = 0
+        self.bfs_paths[(coordinate, coordinate)] = set()
 
         while len(q) > 0:
             current = q.pop()
@@ -159,12 +167,28 @@ class WateringProblem(search.Problem):
 
             if self.legal_moves[x][y][0] and (x - 1, y) not in closed:
                 q.append(((x - 1, y), parent_distance + 1))
+                self.bfs_paths[coordinate, (x - 1, y)] = self.bfs_paths[coordinate, current_coordinate].union(
+                    {(x - 1, y)}
+                )
+
             if self.legal_moves[x][y][1] and (x + 1, y) not in closed:
                 q.append(((x + 1, y), parent_distance + 1))
+                self.bfs_paths[coordinate, (x + 1, y)] = self.bfs_paths[coordinate, current_coordinate].union(
+                    {(x + 1, y)}
+                )
+
             if self.legal_moves[x][y][2] and (x, y - 1) not in closed:
                 q.append(((x, y - 1), parent_distance + 1))
+                self.bfs_paths[coordinate, (x, y - 1)] = self.bfs_paths[coordinate, current_coordinate].union(
+                    {(x, y - 1)}
+                )
+
             if self.legal_moves[x][y][3] and (x, y + 1) not in closed:
                 q.append(((x, y + 1), parent_distance + 1))
+                self.bfs_paths[coordinate, (x, y + 1)] = self.bfs_paths[coordinate, current_coordinate].union(
+                    {(x, y + 1)}
+                )
+
 
     def bfs_distance(self, coordinate1: tuple[int, int], coordinate2: tuple[int, int]):
         distance = self.distances.get((coordinate1, coordinate2))
