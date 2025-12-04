@@ -22,8 +22,11 @@ class State:
     plants_need = None
     robots_load = None
 
+    # We know that the first robot that loads is the only one loading and pouring until he pours all his WU
+    current_active_robot = None
 
-    def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None, last_move = None, plants_need = None, robots_load = None, taps_have = None, robot_last_moves = None):
+
+    def __init__(self, initial = None, size = None, walls = None, taps = None, plants = None, robots = None, last_move = None, plants_need = None, robots_load = None, taps_have = None, robot_last_moves = None, current_active_robot = None):
         # If we construct using initial
         if initial is not None:
             State.size = initial[SIZE]
@@ -40,6 +43,7 @@ class State:
             self.plants_need = sum(self.plants.values())
             self.robots_load = sum(load for (id, load, capacity) in self.robots.values())
             self.taps_have = sum(self.taps.values())
+            self.current_active_robot = None
 
         # If we construct using size, walls, taps, plants, robots
         else:
@@ -54,6 +58,7 @@ class State:
             self.robots_load = robots_load
             self.robots_last_moves = robot_last_moves
             self.taps_have = taps_have
+            self.current_active_robot = current_active_robot
 
     def __hash__(self):
         if self.hash is not None:
