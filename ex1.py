@@ -50,7 +50,7 @@ class State:
             self.robots_load = sum(load for (id, load, capacity) in self.robots.values())
             self.taps_have = sum(self.taps.values())
             self.current_active_robot = None
-            self.objective = (-1, -1)
+            self.objective = None
             self.active_only = False
 
         # If we construct using size, walls, taps, plants, robots
@@ -216,6 +216,13 @@ class WateringProblem(search.Problem):
 
         possible_successors = []
         for (x, y), (id, load, capacity) in state.robots.items():
+            if state.active_only and id != current_active:
+                continue
+
+
+            if id == current_active and (x, y) == state.objective:
+                state.objective = None
+                state.active_only = False
 
             # We want to check whether the robot has any WU on it
             if load > 0:
@@ -234,6 +241,7 @@ class WateringProblem(search.Problem):
                     new_plant_value = water_needed_in_plant_under_robot - 1
 
                     # Creating the new state
+                    new_active_robot = None if load - 1 == 0 else current_active
                     move = f"POUR{{{id}}}"
                     new_state = State(size = state.size,
                                       walls = state.walls,
@@ -245,7 +253,9 @@ class WateringProblem(search.Problem):
                                       robots_load = state.robots_load - 1,
                                       taps_have = state.taps_have,
                                       robot_last_moves = state.robots_last_moves,
-                                      current_active_robot = None if load - 1 == 0 else current_active)
+                                      current_active_robot = new_active_robot,
+                                      objective = None if new_active_robot is None else state.objective,
+                                      active_only = False if new_active_robot is None else state.active_only)
 
                     # robot last moves
                     del new_state.robots_last_moves[id]
@@ -328,6 +338,7 @@ class WateringProblem(search.Problem):
                         else:
                             for ((i, j), needed) in state.plants.items():
                                 path_to_objective = self.bfs_paths.get((i, j), (x, y))
+                                if not path_to_objective: continue
 
                                 # Now checking if there is a robot on the path to the objective
                                 is_active_only = True
@@ -369,6 +380,7 @@ class WateringProblem(search.Problem):
 
                             for ((i, j), have) in state.taps.items():
                                 path_to_objective = self.bfs_paths.get((i, j), (x, y))
+                                if not path_to_objective: continue
 
                                 # Now checking if there is a robot on the path to the objective
                                 is_active_only = True
