@@ -226,8 +226,25 @@ class WateringProblem(search.Problem):
 
         possible_successors = []
         for (x, y), (id, load, capacity) in state.robots.items():
+
+            # We really want to only the active robot to move! If we are not on an active only state, maybe we should
+            # be at one, let's check! It will save us a lot of headache in this iteration
+            if not state.active_only and id == current_active:
+
+                path_to_objective = self.bfs_paths.get((state.objective, (x, y))) or set()
+
+                is_active_only = True
+                for (x_else, y_else) in state.robots.keys():
+                    if (x_else, y_else) != (x, y) and (x_else, y_else) in path_to_objective:
+                        is_active_only = False
+
+                state.active_only = is_active_only
+
+
+            # If it's king-only mode, and I'm not the king: TOO BAD!
             if state.active_only and id != current_active:
                 continue
+
 
 
             # What a miracle! We have reached the objective!
