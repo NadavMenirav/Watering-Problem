@@ -11,7 +11,7 @@ A watering problem consists of an $N\times M$ **grid**, which contatins **robots
 1. 💦 **water_needed**: The number of Water-Units the plant needs in order to be fully saturated
    
 🚰 Each Tap has:
-1. 💦 **water_availavble**: The number of Water-Units the tap has left to giveֿ
+1. 💦 **water_available**: The number of Water-Units the tap has left to giveֿ
 
 <br><br>
 ### 📜 Rules:
