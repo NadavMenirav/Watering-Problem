@@ -24,7 +24,7 @@ def solve_problems(problem, algorithm):
         print("Error creating problem: ", e)
         return None
     if algorithm == "gbfs":
-        result = run_problem((lambda p: search.greedy_best_first_graph_search(p, p.h_gbfs)),targs=[p])
+        result = run_problem((lambda p: search.greedy_best_first_graph_search(p, p.h_gbfs)), targs=[p])
     else:
         result = run_problem((lambda p: search.astar_search(p, p.h_astar)), targs=[p])
 
