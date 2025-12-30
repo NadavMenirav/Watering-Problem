@@ -1,4 +1,5 @@
 import ext_plant
+import numpy as np
 
 id = ["000000000"]
 
@@ -13,10 +14,11 @@ class Controller:
 
     # This function receives a point on the grid and returns a boolean value based on whether there is a robot in that
     # coordinate
-    def is_coordinate_contain_robot(self, coordinate, robots):
+    def is_coordinate_contain_robot(self, coordinate, robots, current_robot):
 
-        for _, (r, c), _ in robots:
-            if coordinate == (r, c):
+        robot_id, (r, c), _ = current_robot
+        for id, (i, j), _ in robots:
+            if coordinate == (i, j) and id != robot_id:
                 return True
         return False
 
@@ -24,11 +26,7 @@ class Controller:
     # This function receives a point on the grid and returns a boolean value based on whether there is a wall in that
     # coordinate
     def is_coordinate_contain_wall(self, coordinate):
-
-        for wall in self.original_game.walls:
-            if coordinate in wall:
-                return True
-        return False
+        return coordinate in self.original_game.walls
 
 
     # This function receives a point on the grid and returns a boolean value based on whether the point is a legal
@@ -62,7 +60,7 @@ class Controller:
     def can_load(self, moving_robot, taps):
 
         robot_id, (r, c), load = moving_robot
-        capacities = self.original_game.get_capacities
+        capacities = self.original_game.get_capacities()
         capacity = capacities[robot_id]
 
         for (i, j), water in taps:
@@ -83,28 +81,28 @@ class Controller:
         if action == "UP":
             return (
                 self.is_on_grid((r - 1, c))
-                and not self.is_coordinate_contain_robot((r - 1, c), robots)
+                and not self.is_coordinate_contain_robot((r - 1, c), robots, moving_robot)
                 and not self.is_coordinate_contain_wall((r - 1, c))
             )
 
         if action == "DOWN":
             return (
                 self.is_on_grid((r + 1, c))
-                and not self.is_coordinate_contain_robot((r + 1, c), robots)
+                and not self.is_coordinate_contain_robot((r + 1, c), robots, moving_robot)
                 and not self.is_coordinate_contain_wall((r + 1, c))
             )
 
         if action == "LEFT":
             return (
                 self.is_on_grid((r, c - 1))
-                and not self.is_coordinate_contain_robot((r, c - 1), robots)
+                and not self.is_coordinate_contain_robot((r, c - 1), robots, moving_robot)
                 and not self.is_coordinate_contain_wall((r, c - 1))
             )
 
         if action == "RIGHT":
             return (
                 self.is_on_grid((r, c + 1))
-                and not self.is_coordinate_contain_robot((r, c + 1), robots)
+                and not self.is_coordinate_contain_robot((r, c + 1), robots, moving_robot)
                 and not self.is_coordinate_contain_wall((r, c + 1))
             )
 
@@ -112,7 +110,7 @@ class Controller:
             return total_water_needed > 0 and self.can_pour(moving_robot, plants)
 
         if action == "LOAD":
-            return self.can_load(moving_robot, taps) # Nots: if total_water_needed == 0 no reason to load
+            return self.can_load(moving_robot, taps) # Note: if total_water_needed == 0 no reason to load
 
         # Reset is always allowed
         if action == "RESET":
@@ -121,16 +119,20 @@ class Controller:
         return False
 
 
-
-
-
-
-
-
     def choose_next_action(self, state):
         """ Choose the next action given a state."""
-        # (robots, plants, taps, total_water_needed) = state
-        #
-        # possible_actions = []
-        # for robot in robots:
+        (robots, plants, taps, total_water_needed) = state
+        actions = {"UP", "DOWN", "LEFT", "RIGHT", "POUR", "LOAD"}
+
+        possible_actions = []
+        for robot in robots:
+            robot_id, (r, c), load = robot
+
+            # For every action, we want to check if its legal and if so, insert it to possible_actions
+            for action in actions:
+                if self.is_action_legal(state, action, robot):
+                    possible_actions.append(f"{action}({robot_id})")
+
+        possible_actions.append("RESET")
+        return np.random.choice(np.array(possible_actions))
 
