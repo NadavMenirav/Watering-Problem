@@ -53,6 +53,23 @@ class Controller:
         return False
 
 
+    # This function receives a point on the grid, the robot on that point, and all the taps, and returns whether the
+    # robot can load water.
+    # There are three things that needs to be checked:
+    # 1. There is a tap on that point
+    # 2. The tap has WU on it
+    # 3. The robot's current load is smaller than its capacity
+    def can_load(self, moving_robot, taps):
+
+        robot_id, (r, c), load = moving_robot
+        capacities = self.original_game.get_capacities
+        capacity = capacities[robot_id]
+
+        for (i, j), water in taps:
+            if (r, c) == (i, j) and water > 0 and load < capacity:
+                return True
+        return False
+
     # This function receives an action and returns a boolean value based on whether the action is legal
     # For moving actions (UP, DOWN, LEFT, RIGHT) you need to check 3 things about the coordinate you move to:
     # 1. It is a legal point on the map
@@ -93,6 +110,15 @@ class Controller:
 
         if action == "POUR":
             return total_water_needed > 0 and self.can_pour(moving_robot, plants)
+
+        if action == "LOAD":
+            return self.can_load(moving_robot, taps) # Nots: if total_water_needed == 0 no reason to load
+
+        # Reset is always allowed
+        if action == "RESET":
+            return True
+
+        return False
 
 
 
