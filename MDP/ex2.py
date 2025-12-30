@@ -110,13 +110,28 @@ class Controller:
             return total_water_needed > 0 and self.can_pour(moving_robot, plants)
 
         if action == "LOAD":
-            return self.can_load(moving_robot, taps) # Note: if total_water_needed == 0 no reason to load
+            return self.can_load(moving_robot, taps) # TODO: if total_water_needed == 0 no reason to load
 
         # Reset is always allowed
         if action == "RESET":
             return True
 
         return False
+
+
+    # This function is a greedy walk
+    # It receives a list of all possible actions and returns the one that will generate the most reward
+    # For now, it is pretty simple and just simulates the action one time
+    # def greedy_walk(self, possible_actions):
+
+
+
+    # This function receives an action and returns the simulated value that was received
+    def simulate_action(self, action):
+        copy = ext_plant.Game(self.original_game.get_problem())
+        copy.submit_next_action(action)
+        return copy.get_current_reward()
+
 
 
     def choose_next_action(self, state):
@@ -134,5 +149,5 @@ class Controller:
                     possible_actions.append(f"{action}({robot_id})")
 
         possible_actions.append("RESET")
-        return np.random.choice(np.array(possible_actions))
+        return str(np.random.choice(np.array(possible_actions)))
 
