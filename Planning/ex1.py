@@ -284,11 +284,7 @@ class WateringProblem(search.Problem):
 
                         # If there is one robot he should fill his tank until full
                         # Or until he has enough WU to water all plants
-                        if number_of_robots == 1 or (
-                                number_of_taps == 1
-                                and state.robots_last_moves.get(id) == "LOAD"
-                                and load < min(state.plants.values())
-                        ):
+                        if number_of_robots == 1:
                             continue
 
 
