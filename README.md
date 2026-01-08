@@ -31,4 +31,23 @@ A watering problem consists of an $N\times M$ **grid**, which contatins **robots
 ## 🌟 What Even is an _Optimal_ Solution?
 Excellent question!  
 Before we discuss the strategies to solve the problem, we need to begin by defining what our goal even is.  
-This agent is able to support these two types of 
+This agent is able to support these two types of goals:
+
+### 💯 1. Water All of the Plants in the Garden
+🎯 **This is the Planning part of the project**  
+<br>
+The goal of our agent is to water all plants in the garden.  
+<br>
+to find *A* path is pretty easy and can be calculated rather fast using the GBFS algorithm.
+Actually, my algorithm gives a very good path in a very short time while using a very simple GBFS heuristic (The number of Water Units the plants still need plus the amount of Water Units the robots still need to load to reach that number)
+<br>
+#### 🤔 So What's the Catch?
+The thing is, we don't want a "very good path".  
+We want the OPTIMAL path. The path with the lowest number of steps.
+<br><br>
+Apparently, Calculating the optimal path, using the A* algorithm is a super difficult task.  
+Why? 
+<br><br>
+Just think of how mamy different states are there. The robots can be can be in every square of the board, and for each one, the taps can be at different capacities, the plants can be in different need, and so on.
+<br>
+Spoiler: This huge State Space is too big to fit in our computers' memory.
