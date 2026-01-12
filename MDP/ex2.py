@@ -3,6 +3,20 @@ import numpy as np
 
 id = ["000000000"]
 
+# This class is a helper class to help us with running the A* algorithm
+class WateringProblem:
+    def __init__(self, state, original_game):
+
+        # Saving the starting state for the A*
+        self.initial = state
+
+        # Saving the rules of the game
+        self.walls = original_game.walls
+        self.capacities = original_game.get_capacities()
+        self.rows = original_game.rows
+        self.cols = original_game.cols
+
+
 
 class Controller:
     """This class is a controller for the ext_plant game."""
@@ -71,7 +85,7 @@ class Controller:
     # This function receives an action and returns a boolean value based on whether the action is legal
     # For moving actions (UP, DOWN, LEFT, RIGHT) you need to check 3 things about the coordinate you move to:
     # 1. It is a legal point on the map
-    # 2. It does not contain another robot
+    # 2. It does not co ntain another robot
     # 3. It does not contain a wall
     def is_action_legal(self, state, action, moving_robot):
 
