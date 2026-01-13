@@ -267,6 +267,10 @@ class WateringProblem(Problem):
     def path_cost(self, c, state1, action, state2):
          return c + 1
 
+    # The heuristic function. For now, it is very simple, returns the total water needed.
+    def h(self, node):
+        return node.state[3]
+
 
 class Controller:
     """This class is a controller for the ext_plant game."""
