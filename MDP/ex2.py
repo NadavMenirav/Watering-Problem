@@ -279,20 +279,40 @@ class Controller:
         """Initialize controller for given game model."""
         self.original_game = game
 
+        # Where we store the A* path
+        self.current_plan = []
+
 
     def choose_next_action(self, state):
         """ Choose the next action given a state."""
-        (robots, plants, taps, total_water_needed) = state
-        actions = {"UP", "DOWN", "LEFT", "RIGHT", "POUR", "LOAD"}
 
-        possible_actions = []
-        for robot in robots:
-            robot_id, (r, c), load = robot
+        # If we have a plan from the A* list, we follow it
+        if self.current_plan:
+            move = self.current_plan.pop(0)
+            return move
 
-            # For every action, we want to check if its legal and if so, insert it to possible_actions
-            for action in actions:
-                if self.is_action_legal(state, action, robot):
-                    possible_actions.append(f"{action}({robot_id})")
+        # Need to run a new A* search
+        problem = WateringProblem(state, self.original_game)
 
-        possible_actions.append("RESET")
-        return np.random.choice(np.array(possible_actions))
+        # Running the search
+        goal_node = astar_search(problem)
+
+        # If we found a path, reconstruct it
+        if goal_node:
+            path = []
+            node = goal_node
+
+
+            while node.parent:
+                path.append(node.action)
+                node = node.parent
+
+            # Reverse the path to get it from the start to the goal
+            self.current_plan = path[::-1]
+
+            # Returning the first move
+            return self.current_plan.pop(0)
+
+        # If the search failed we reset
+        return "RESET"
+
