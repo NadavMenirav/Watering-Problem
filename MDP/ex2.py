@@ -30,8 +30,11 @@ class Problem:
 
 
 # This class is a helper class to help us with running the A* algorithm
-class WateringProblem:
+class WateringProblem(Problem):
     def __init__(self, state, original_game):
+
+        # Initializing the parrent
+        super().__init__(state)
 
         # Saving the starting state for the A*
         # State is (robots_t, plants_t, taps_t, total_water_need)
