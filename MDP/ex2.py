@@ -19,7 +19,7 @@ class WateringProblem:
 
     # This function is used in the A* to check if we had reached our goal.
     # The state we get have holds a total_water_need parameter which is 0 when we reach the goal
-    def is_goal(self, state):
+    def goal_test(self, state):
         return state[3] == 0 # The fourth parameter is the total_water_need
 
 
@@ -229,6 +229,14 @@ class WateringProblem:
 
 
         return possible_successors
+
+    # This function returns the cost of an action. Used for the A* search
+    # c = cost so far (to get to state1)
+    # state1 = where we came from
+    # action = what we did
+    # state2 = where we ended up
+    def path_cost(self, c, state1, action, state2):
+         return c + 1
 
 
 class Controller:
