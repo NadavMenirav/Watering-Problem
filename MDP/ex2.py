@@ -14,6 +14,12 @@ class Problem:
     def successor(self, state):
         raise NotImplementedError
 
+
+    # This function checks if we had reached our goal. It is naive and our WateringProblem class overrides it anyway
+    def goal_test(self, state):
+        return state == self.goal
+
+
 # This class is a helper class to help us with running the A* algorithm
 class WateringProblem:
     def __init__(self, state, original_game):
