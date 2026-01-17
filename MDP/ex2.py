@@ -1,620 +1,573 @@
-import ext_plant
-import numpy as np
-import bisect
+import heapq
+import math
 from collections import deque
+import ext_plant
 
-id = ["000000000"]
+# ---------------------------------------------------------------------
+# Global Config & Constants
+# ---------------------------------------------------------------------
+id = ["00000000"]
 
-# --- 1. THE PRIORITY QUEUE ---
-# A list that keeps itself sorted so the best option is always first.
-class PriorityQueue:
-    def __init__(self, f=lambda x: x):
-        self.A = []
-        self.f = f
-
-    def append(self, item):
-        # Insert the item in the correct order based on its cost (f)
-        bisect.insort(self.A, (self.f(item), item))
-
-    def pop(self):
-        # Remove and return the item with the lowest cost
-        return self.A.pop(0)[1]
-
-    def __len__(self):
-        return len(self.A)
+MOVES = {
+    "UP": (-1, 0),
+    "DOWN": (1, 0),
+    "LEFT": (0, -1),
+    "RIGHT": (0, 1),
+}
+MOVE_VECTORS = list(MOVES.items())
+INF = 10 ** 18
+DIST_INF = 10 ** 9
 
 
-# --- 2. THE NODE ---
-# A wrapper that holds the state and remembers the path.
+# ---------------------------------------------------------------------
+# Core Logic: Pathfinding Engine
+# ---------------------------------------------------------------------
 class Node:
-    def __init__(self, state, parent=None, action=None, path_cost=0):
+    """Wrapper for A* states."""
+    __slots__ = ('state', 'cost', 'prev', 'op')
+
+    def __init__(self, state, cost=0, prev=None, op=None):
         self.state = state
-        self.parent = parent
-        self.action = action
-        self.path_cost = path_cost
-        self.depth = 0
-        if parent:
-            self.depth = parent.depth + 1
+        self.cost = cost
+        self.prev = prev
+        self.op = op
+
 
-    def __repr__(self):
-        return "<Node %s>" % (self.state,)
-
-    def __lt__(self, other):
-        # Needed for sorting in the queue
-        return self.path_cost < other.path_cost
-
-    def expand(self, problem):
-        # Create new nodes for every possible move
-        return [
-            Node(next_state, self, act, problem.path_cost(self.path_cost, self.state, act, next_state))
-            for (act, next_state) in problem.successor(self.state)
-        ]
-
-
-# --- 3. THE SEARCH FUNCTION ---
-def astar_search(problem, h=None):
-    # Use the problem's heuristic if none is provided
-    h = h or problem.h
-
-    # Calculate Total Cost (f) = Past Cost (path_cost) + Future Guess (h)
-    def f(n):
-        return n.path_cost + h(n)
-
-    # The list of nodes we need to check, sorted by cost
-    frontier = PriorityQueue(f=f)
-    frontier.append(Node(problem.initial))
-
-    # Keep track of states we have already visited to avoid loops
-    explored = set()
-
-    while frontier:
-        # Get the best node
-        node = frontier.pop()
-
-        # Check if we won
-        if problem.goal_test(node.state):
-            return node
-
-        # Add to explored set (Must be a tuple to be hashable!)
-        if node.state not in explored:
-            explored.add(node.state)
-
-            # Add all neighbors to the queue
-            for child in node.expand(problem):
-                if child.state not in explored:
-                    frontier.append(child)
-
-    return None
-
-class Problem:
-
-    # Defines the starting point of the problem and the goal
-    def __init__(self, initial, goal = None):
-        self.initial = initial
-        self.goal = goal
-
-    # This function is a placeholder. WateringProblem will overwrite it with the actual logic
-    def successor(self, state):
-        raise NotImplementedError
-
-
-    # This function checks if we had reached our goal. It is naive and our WateringProblem class overrides it anyway
-    def goal_test(self, state):
-        return state == self.goal
-
-    # By default, every move costs 1.
-    def path_cost(self, c, state1, action, state2):
-        return c + 1
-
-    # The heuristic function.
-    # By default, return 0.
-    def h(self, node):
-        return 0
-
-
-# This class is a helper class to help us with running the A* algorithm
-class WateringProblem(Problem):
-    def __init__(self, state, original_game, extra_walls=None):
-
-        # Initializing the parent
-        super().__init__(state)
-
-        # Saving the starting state for the A*
-        self.initial = state
-
-        # Now, I am adding the support of "temporary walls". They will be the robots we want to avoid in our plan
-        # 1. Make a COPY of the real walls (so we don't break the game)
-        self.walls = original_game.walls.copy()
-
-        # 2. Add the "Temporary Walls" (The dumb robots we want to avoid)
-        if extra_walls:
-            self.walls.update(extra_walls)
-
-
-        self.capacities = original_game.get_capacities()
-        self.rows = original_game.rows
-        self.cols = original_game.cols
-
-        # The BFS distances
-        self.distances = {}
-
-        # A matrix of the legal moves from every square.
-        self.legal_moves = [
-            [[False, False, False, False] for _ in range(self.cols)]
-            for _ in range(self.rows)
-        ]
-
-        # Filling the matrix
-        for x in range(self.rows):
-            for y in range(self.cols):
-                # Check UP
-                if x - 1 >= 0 and (x - 1, y) not in self.walls:
-                    self.legal_moves[x][y][0] = True
-                # Check DOWN
-                if x + 1 < self.rows and (x + 1, y) not in self.walls:
-                    self.legal_moves[x][y][1] = True
-                # Check LEFT
-                if y - 1 >= 0 and (x, y - 1) not in self.walls:
-                    self.legal_moves[x][y][2] = True
-                # Check RIGHT
-                if y + 1 < self.cols and (x, y + 1) not in self.walls:
-                    self.legal_moves[x][y][3] = True
-
-
-    # This function is used in the A* to check if we had reached our goal.
-    # The state we get have holds a total_water_need parameter which is 0 when we reach the goal
-    def goal_test(self, state):
-        return state[3] == 0 # The fourth parameter is the total_water_need
-
-    def BFS(self, coordinate):
-        x = coordinate[0]
-        y = coordinate[1]
-
-        q = deque()
-        q.append((coordinate, -1))
-        closed = set()
-
-        self.distances[(coordinate, coordinate)] = 0
-
-        while len(q) > 0:
-            current = q.popleft()
-            current_coordinate = current[0]
-            x = current_coordinate[0]
-            y = current_coordinate[1]
-            parent_distance = current[1]
-
-            if current_coordinate in closed:
-                continue
-
-            # Cache the distance both ways
-            self.distances[(coordinate, current_coordinate)] = parent_distance + 1
-            self.distances[(current_coordinate, coordinate)] = parent_distance + 1
-
-            closed.add(current_coordinate)
-
-            # Using the legal moves matrix
-            if self.legal_moves[x][y][0] and (x - 1, y) not in closed:
-                q.append(((x - 1, y), parent_distance + 1))
-            if self.legal_moves[x][y][1] and (x + 1, y) not in closed:
-                q.append(((x + 1, y), parent_distance + 1))
-            if self.legal_moves[x][y][2] and (x, y - 1) not in closed:
-                q.append(((x, y - 1), parent_distance + 1))
-            if self.legal_moves[x][y][3] and (x, y + 1) not in closed:
-                q.append(((x, y + 1), parent_distance + 1))
-
-
-    # The wrapper function. You calculate the distance calling this function
-    def bfs_distance(self, coordinate1, coordinate2):
-        distance = self.distances.get((coordinate1, coordinate2))
-        if distance is not None:
-            return distance
-
-        self.BFS(coordinate1) # Calculating the BFS from this point.
-
-        # Infinity value just in case path is impossible
-        return self.distances.get((coordinate1, coordinate2), float('inf'))
-
-
-    # This function receives a point on the grid and returns a boolean value based on whether there is a robot in that
-    # coordinate
-    def is_coordinate_contain_robot(self, coordinate, robots, current_robot):
-
-        robot_id, (r, c), _ = current_robot
-        for id, (i, j), _ in robots:
-            if coordinate == (i, j) and id != robot_id:
-                return True
-        return False
-
-
-    # This function receives a point on the grid and returns a boolean value based on whether there is a wall in that
-    # coordinate
-    def is_coordinate_contain_wall(self, coordinate):
-        return coordinate in self.walls
-
-
-    # This function receives a point on the grid and returns a boolean value based on whether the point is a legal
-    # point on the gird
-    def is_on_grid(self, coordinate):
-        (r, c) = coordinate
-        return 0 <= r < self.rows and 0 <= c < self.cols
-
-
-    # This function receives a point on the grid, the robot on that point, and all the plants, and returns whether the
-    # robot can pour water.
-    # There are three things that needs to be checked:
-    # 1. There is a plant on that point
-    # 2. The plant needs a positive number of WU
-    # 3. The robot has WU on him
-    def can_pour(self, moving_robot, plants):
-
-        _, (r, c), load = moving_robot
-        for (i, j), need in plants:
-            if (r, c) == (i, j) and need > 0 and load > 0:
-                return True
-        return False
-
-
-    # This function receives a point on the grid, the robot on that point, and all the taps, and returns whether the
-    # robot can load water.
-    # There are three things that needs to be checked:
-    # 1. There is a tap on that point
-    # 2. The tap has WU on it
-    # 3. The robot's current load is smaller than its capacity
-    def can_load(self, moving_robot, taps):
-
-        robot_id, (r, c), load = moving_robot
-        capacities = self.capacities
-        capacity = capacities[robot_id]
-
-        for (i, j), water in taps:
-            if (r, c) == (i, j) and water > 0 and load < capacity:
-                return True
-        return False
-
-
-    # This function receives an action and returns a boolean value based on whether the action is legal
-    # For moving actions (UP, DOWN, LEFT, RIGHT) you need to check 3 things about the coordinate you move to:
-    # 1. It is a legal point on the map
-    # 2. It does not contain another robot
-    # 3. It does not contain a wall
-    def is_action_legal(self, state, action, moving_robot):
-
-        (robots, plants, taps, total_water_needed) = state
-        (r, c) = moving_robot[1] # The coordinate of the robot
-
-        if action == "UP":
-            return (
-                self.is_on_grid((r - 1, c))
-                and not self.is_coordinate_contain_robot((r - 1, c), robots, moving_robot)
-                and not self.is_coordinate_contain_wall((r - 1, c))
-            )
-
-        if action == "DOWN":
-            return (
-                self.is_on_grid((r + 1, c))
-                and not self.is_coordinate_contain_robot((r + 1, c), robots, moving_robot)
-                and not self.is_coordinate_contain_wall((r + 1, c))
-            )
-
-        if action == "LEFT":
-            return (
-                self.is_on_grid((r, c - 1))
-                and not self.is_coordinate_contain_robot((r, c - 1), robots, moving_robot)
-                and not self.is_coordinate_contain_wall((r, c - 1))
-            )
-
-        if action == "RIGHT":
-            return (
-                self.is_on_grid((r, c + 1))
-                and not self.is_coordinate_contain_robot((r, c + 1), robots, moving_robot)
-                and not self.is_coordinate_contain_wall((r, c + 1))
-            )
-
-        if action == "POUR":
-            return total_water_needed > 0 and self.can_pour(moving_robot, plants)
-
-        if action == "LOAD":
-            return self.can_load(moving_robot, taps) # Note: if total_water_needed == 0 no reason to load
-
-        # Reset is always allowed
-        if action == "RESET":
+def solve_scenario(model):
+    """Executes the search algorithm on the provided model."""
+    root = model.get_start_state()
+
+    if model.check_solved(root):
+        return []
+
+    # Priority Queue: (f_score, g_score, tie_breaker, node_obj)
+    open_set = []
+    tie_breaker = 0
+
+    initial_h = model.estimate_cost(root)
+    start_node = Node(root, 0, None, None)
+
+    heapq.heappush(open_set, (initial_h, 0, tie_breaker, start_node))
+
+    min_cost_tracker = {root: 0}
+
+    while open_set:
+        _, current_g, _, current_node = heapq.heappop(open_set)
+        current_state = current_node.state
+
+        # Lazy deletion check
+        if current_g != min_cost_tracker.get(current_state, INF):
+            continue
+
+        if model.check_solved(current_state):
+            # Backtrack path
+            path_sequence = []
+            trace = current_node
+            while trace.prev is not None:
+                path_sequence.append(trace.op)
+                trace = trace.prev
+            return path_sequence[::-1]
+
+        # Expand neighbors
+        for action_name, next_state in model.get_transitions(current_state):
+            next_g = current_g + 1
+            if next_g < min_cost_tracker.get(next_state, INF):
+                min_cost_tracker[next_state] = next_g
+                tie_breaker += 1
+                f_score = next_g + model.estimate_cost(next_state)
+                new_node = Node(next_state, next_g, current_node, action_name)
+                heapq.heappush(open_set, (f_score, next_g, tie_breaker, new_node))
+
+    return []
+
+
+# ---------------------------------------------------------------------
+# Core Logic: Simulation Model
+# ---------------------------------------------------------------------
+class GridSimulation:
+    def __init__(self, dim, barriers, agents_map, crops_map, water_map, temp_obs=None):
+        self.H, self.W = dim
+        self.static_obs = set(barriers)
+        self.dynamic_obs = set(temp_obs) if temp_obs else set()
+
+        # Canonize positions
+        self.crop_locs = tuple(sorted(crops_map.keys()))
+        self.src_locs = tuple(sorted(water_map.keys()))
+
+        # Lookups
+        self.c_idx = {loc: i for i, loc in enumerate(self.crop_locs)}
+        self.s_idx = {loc: i for i, loc in enumerate(self.src_locs)}
+
+        # Static Data
+        self.agent_caps = {aid: c for aid, (_, _, _, c) in agents_map.items()}
+
+        # Initial State Construction
+        raw_agents = []
+        for aid, (r, c, load, _) in agents_map.items():
+            raw_agents.append((aid, r, c, load))
+        raw_agents.sort()  # Sort by ID
+
+        self.start_agents = tuple(raw_agents)
+        self.start_crops = tuple(crops_map[p] for p in self.crop_locs)
+        self.start_srcs = tuple(water_map[t] for t in self.src_locs)
+        self.start_sum = sum(self.start_crops)
+
+        self._path_cache = {}
+
+    def get_start_state(self):
+        return (self.start_agents, self.start_crops, self.start_srcs, self.start_sum)
+
+    def check_solved(self, state):
+        return state[3] == 0
+
+    # --- Geometry & Distance ---
+    def _compute_bfs(self, origin):
+        if origin in self._path_cache:
+            return
+
+        frontier = deque([origin])
+        depths = {origin: 0}
+
+        while frontier:
+            r, c = frontier.popleft()
+            d = depths[(r, c)]
+
+            for _, (dr, dc) in MOVE_VECTORS:
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < self.H and 0 <= nc < self.W:
+                    pt = (nr, nc)
+                    if pt in self.static_obs or pt in self.dynamic_obs:
+                        continue
+                    if pt not in depths:
+                        depths[pt] = d + 1
+                        frontier.append(pt)
+        self._path_cache[origin] = depths
+
+    def get_travel_cost(self, p1, p2):
+        if p1 == p2: return 0
+        self._compute_bfs(p1)
+        return self._path_cache[p1].get(p2, DIST_INF)
+
+    # --- Heuristics ---
+    def estimate_cost(self, state):
+        agents, crops, sources, total_rem = state
+        if total_rem == 0:
+            return 0
+
+        pending_crops = [self.crop_locs[i] for i, val in enumerate(crops) if val > 0]
+        if not pending_crops:
+            return 0
+
+        active_sources = [self.src_locs[i] for i, val in enumerate(sources) if val > 0]
+        if not active_sources:
+            return total_rem + 10000
+
+        current_load = sum(l for (_, _, _, l) in agents)
+        shortage = max(0, total_rem - current_load)
+
+        max_path_cost = 0
+        for crop_pos in pending_crops:
+            min_robot_cost = DIST_INF
+            for (aid, r, c, load) in agents:
+                agent_pos = (r, c)
+                if load > 0:
+                    val = self.get_travel_cost(agent_pos, crop_pos)
+                else:
+                    # Cost: Move to source -> Refill(1) -> Move to crop
+                    dist_to_src = min(self.get_travel_cost(agent_pos, t) for t in active_sources)
+                    dist_src_to_crop = min(self.get_travel_cost(t, crop_pos) for t in active_sources)
+                    val = dist_to_src + 1 + dist_src_to_crop
+
+                if val < min_robot_cost:
+                    min_robot_cost = val
+
+            if min_robot_cost > max_path_cost:
+                max_path_cost = min_robot_cost
+
+        # Formula: Total + Shortage + MaxCost + TieBreaker
+        return total_rem + shortage + max_path_cost + (max_path_cost / 100.0)
+
+    # --- Transitions ---
+    def get_transitions(self, state):
+        agents, crops, sources, total_rem = state
+        transitions = []
+
+        occupied_locs = {(r, c) for (_, r, c, _) in agents}
+
+        for i, (aid, r, c, load) in enumerate(agents):
+            others_locs = occupied_locs - {(r, c)}
+
+            # 1. Movement
+            for move_name, (dr, dc) in MOVE_VECTORS:
+                nr, nc = r + dr, c + dc
+                next_pos = (nr, nc)
+
+                # Bounds check
+                if not (0 <= nr < self.H and 0 <= nc < self.W): continue
+                # Collision check
+                if next_pos in self.static_obs or next_pos in self.dynamic_obs: continue
+                if next_pos in others_locs: continue
+
+                updated_agents = list(agents)
+                updated_agents[i] = (aid, nr, nc, load)
+                transitions.append((f"{move_name}({aid})", (tuple(updated_agents), crops, sources, total_rem)))
+
+            # 2. Loading
+            if (r, c) in self.s_idx:
+                s_ptr = self.s_idx[(r, c)]
+                if sources[s_ptr] > 0 and load < self.agent_caps[aid]:
+                    mod_sources = list(sources)
+                    mod_sources[s_ptr] -= 1
+                    mod_agents = list(agents)
+                    mod_agents[i] = (aid, r, c, load + 1)
+                    transitions.append((f"LOAD({aid})", (tuple(mod_agents), crops, tuple(mod_sources), total_rem)))
+
+            # 3. Pouring
+            if (r, c) in self.c_idx:
+                c_ptr = self.c_idx[(r, c)]
+                if crops[c_ptr] > 0 and load > 0:
+                    mod_crops = list(crops)
+                    mod_crops[c_ptr] -= 1
+                    mod_agents = list(agents)
+                    mod_agents[i] = (aid, r, c, load - 1)
+                    transitions.append((f"POUR({aid})", (tuple(mod_agents), tuple(mod_crops), sources, total_rem - 1)))
+
+        return transitions
+
+
+# ---------------------------------------------------------------------
+# Core Logic: Bot Controller
+# ---------------------------------------------------------------------
+class Controller:
+    def __init__(self, game_interface: ext_plant.Game):
+        self.engine = game_interface
+        self.raw_data = self.engine.get_problem()
+
+        self.grid_size = self.raw_data["Size"]
+        self.fixed_walls = set(self.raw_data.get("Walls", set()))
+        self.max_loads = self.engine.get_capacities()
+
+        # Probability & Reliability
+        probs = dict(self.raw_data["robot_chosen_action_prob"])
+        self.reliable_ids = {rid for rid, p in probs.items() if p >= 0.75}
+
+        # Leader Selection
+        def _score_bot(rid):
+            # Prioritize: 1. Prob bucket (10%), 2. Capacity, 3. Raw Prob
+            return (int(probs[rid] / 0.1), self.max_loads.get(rid, 0), probs[rid])
+
+        self.primary_id = max(probs.keys(), key=_score_bot)
+
+        if not self.reliable_ids:
+            self.reliable_ids = {self.primary_id}
+
+        # Internal State
+        self.mode = "FULL_MAP"
+        self.focus_crop = None
+        self.temp_barriers = set()
+        self.dead_crops = set()
+
+        self.action_queue = []
+        self.queue_idx = 0
+
+        self.pos_tracker = {}
+        self.just_reset = True
+        self.crop_baseline = set()
+
+        # Initialize logic
+        self._generate_plan()
+
+    # --- Helpers ---
+    def _get_agent_state(self, agents_tuple, target_id):
+        for rid, pos, ld in agents_tuple:
+            if rid == target_id:
+                return pos, ld
+        return None, 0
+
+    def _check_occupancy(self, agents_tuple, loc, ignore_id):
+        for rid, pos, _ in agents_tuple:
+            if pos == loc and rid != ignore_id:
+                return rid
+        return None
+
+    def _calc_next_pos(self, current, move_key):
+        dr, dc = MOVES[move_key]
+        return (current[0] + dr, current[1] + dc)
+
+    def _bfs_water_dist(self, start, water_tuples):
+        # BFS ignoring dynamic blocks
+        q = deque([start])
+        dists = {start: 0}
+        active_taps = {tp for tp, amt in water_tuples if amt > 0}
+
+        while q:
+            curr = q.popleft()
+            d = dists[curr]
+            if curr in active_taps:
+                return d
+
+            r, c = curr
+            for _, (dr, dc) in MOVES.items():
+                nr, nc = r + dr, c + dc
+                nxt = (nr, nc)
+                if 0 <= nr < self.grid_size[0] and 0 <= nc < self.grid_size[1]:
+                    if nxt not in self.fixed_walls and nxt not in dists:
+                        dists[nxt] = d + 1
+                        q.append(nxt)
+        return DIST_INF
+
+    def _is_move_valid(self, op, agent_id, world_state):
+        agents, crops, taps, _ = world_state
+        curr_pos, curr_load = self._get_agent_state(agents, agent_id)
+
+        if curr_pos is None: return False
+
+        if op in MOVES:
+            # Check Geometry & Collision
+            target = self._calc_next_pos(curr_pos, op)
+            if not (0 <= target[0] < self.grid_size[0] and 0 <= target[1] < self.grid_size[1]):
+                return False
+            if target in self.fixed_walls or target in self.temp_barriers:
+                return False
+            if self._check_occupancy(agents, target, ignore_id=agent_id) is not None:
+                return False
             return True
 
+        elif op == "LOAD":
+            available = 0
+            for t_pos, amt in taps:
+                if t_pos == curr_pos:
+                    available = amt
+                    break
+
+            if available <= 0 or curr_load >= self.max_loads[agent_id]:
+                return False
+
+            # Smart Loading Limit
+            if self.focus_crop is not None:
+                req = 0
+                for c_pos, n in crops:
+                    if c_pos == self.focus_crop:
+                        req = n
+                        break
+
+                # Buffer for failure
+                fail_rate = 1.0 - dict(self.raw_data["robot_chosen_action_prob"]).get(agent_id, 1.0)
+                smart_cap = min(int(req * 1.25) + 1, self.max_loads[agent_id])
+                if curr_load >= smart_cap:
+                    return False
+            return True
+
+        elif op == "POUR":
+            if curr_load <= 0: return False
+            for c_pos, need in crops:
+                if c_pos == curr_pos and need > 0:
+                    return True
+            return False
+
         return False
 
+    # --- Strategy Setup ---
+    def _setup_problem_instance(self, world_state):
+        agents, crops, taps, _ = world_state
 
+        # Analyze Rewards
+        rewards_map = self.raw_data["plants_reward"]
+        avg_rewards = {p: (sum(vals) / len(vals)) for p, vals in rewards_map.items() if vals}
+        r_vals = list(avg_rewards.values()) or [0.0]
 
-    # This function returns a list of all the possible next states
-    def successor(self, state):
+        is_greedy_map = (max(r_vals) > 2.0 * min(r_vals))
+        map_area = self.grid_size[0] * self.grid_size[1]
 
-        # A list of the next possible states
-        possible_successors = []
+        # Mode Selection
+        self.mode = "GREEDY_PLANT" if (map_area >= 20 or is_greedy_map) else "FULL_MAP"
 
-        # This represents our current state
-        (robots, plants, taps, total_water_needed) = state
+        # Filter Entities
+        sub_crops = {}
+        self.focus_crop = None
 
-        # The directions the robot can do. We iterate over them to check which ones are valid
-        # Each direction is a tuple.
-        # 1st element is a string represents the movement
-        # 2nd and 3rd element are the differences in x and y coordinates
-        directions = [("UP", -1, 0), ("DOWN", 1, 0), ("LEFT", 0, -1), ("RIGHT", 0, 1)]
+        if self.mode == "GREEDY_PLANT":
+            # Select single best plant
+            leader_xy, _ = self._get_agent_state(agents, self.primary_id)
+            best_p, max_score = None, -INF
 
-        # Iterating over all the robots, checking what moves can they do
-        # We use enumerate so we know which robot is the one moving
-        for i, robot in enumerate(robots):
+            for p_loc, amt in crops:
+                if amt <= 0 or p_loc in self.dead_crops:
+                    continue
 
-            # Extracting the parameters of the robot
-            robot_id, (r, c), load = robot
+                dist_est = self._bfs_water_dist(leader_xy, taps) + abs(p_loc[0] - leader_xy[0]) + abs(
+                    p_loc[1] - leader_xy[1])
+                score = avg_rewards.get(p_loc, 0.0) * 10.0 - min(dist_est, 10000)
 
-            # Iterating over all directions to check which ones are valid
-            for action_name, dr, dc in directions:
+                if score > max_score:
+                    max_score, best_p = score, p_loc
 
-                # If this direction is valid for this robot we add this action to the possible_successors
-                if self.is_action_legal(state, action_name, robot):
+            if best_p:
+                sub_crops[best_p] = next(n for p, n in crops if p == best_p)
+                self.focus_crop = best_p
+        else:
+            # Take all active
+            for p_loc, amt in crops:
+                if amt > 0 and p_loc not in self.dead_crops:
+                    sub_crops[p_loc] = amt
 
-                    # Convert the tuple to a list
-                    new_robots = list(robots)
+        # Filter Agents
+        active_ids = {self.primary_id} if self.mode == "GREEDY_PLANT" else set(self.reliable_ids)
 
-                    # Make the change
-                    new_pos = (r + dr, c + dc)
-                    new_robots[i] = (robot_id, new_pos, load)
+        sim_agents = {}
+        for rid, pos, load in agents:
+            if rid in active_ids:
+                sim_agents[rid] = (pos[0], pos[1], load, self.max_loads[rid])
 
-                    # Convert back to tuple
-                    new_state = (tuple(new_robots), plants, taps, total_water_needed)
+        # Prepare Taps (Planner needs current levels)
+        sim_taps = {t: amt for t, amt in taps}
 
-                    # Adding to the possible successors the new state along with the action name
-                    possible_successors.append((f"{action_name}({robot_id})", new_state))
+        return sim_agents, sub_crops, sim_taps
 
+    def _generate_plan(self):
+        curr_state = self.engine.get_current_state()
+        p_agents, p_crops, p_taps = self._setup_problem_instance(curr_state)
 
-            # Checking if LOAD is valid
-            if self.is_action_legal(state, "LOAD", robot):
+        sim = GridSimulation(
+            dim=self.grid_size,
+            barriers=self.fixed_walls,
+            agents_map=p_agents,
+            crops_map=p_crops,
+            water_map=p_taps,
+            temp_obs=self.temp_barriers
+        )
+        self.action_queue = solve_scenario(sim)
+        self.queue_idx = 0
 
-                # Convert the tuple to a list
-                new_robots = list(robots)
-                new_taps = list(taps)
-
-                # Make the change
-                new_load = load + 1
-                new_robots[i] = (robot_id, (r, c), new_load)
-
-                for idx, (t_pos, t_water) in enumerate(new_taps):
-                    if t_pos == (r, c):
-                        if t_water - 1 == 0:
-                            del new_taps[idx]  # Remove empty tap
-                        else:
-                            new_taps[idx] = (t_pos, t_water - 1)
-                        break
-
-
-                # Convert back to tuple
-                new_state = (tuple(new_robots), plants, tuple(new_taps), total_water_needed)
-
-                # Adding to the possible successors the new state along with the action name
-                possible_successors.append((f"LOAD({robot_id})", new_state))
-
-
-            # Checking if POUR is valid
-            if self.is_action_legal(state, "POUR", robot):
-
-                # Convert the tuple to a list
-                new_robots = list(robots)
-                new_plants = list(plants)
-
-                # Make the change
-                new_load = load - 1
-                new_robots[i] = (robot_id, (r, c), new_load)
-
-                for idx, (p_pos, p_need) in enumerate(new_plants):
-                    if p_pos == (r, c):
-                        if p_need - 1 == 0:
-                            del new_plants[idx]  # Remove satisfied plant
-                        else:
-                            new_plants[idx] = (p_pos, p_need - 1)
-                        break
-
-
-                # Convert back to tuple
-                new_state = (tuple(new_robots), tuple(new_plants), taps, total_water_needed - 1)
-
-                # Adding to the possible successors the new state along with the action name
-                possible_successors.append((f"POUR({robot_id})", new_state))
-
-
-        return possible_successors
-
-    # This function returns the cost of an action. Used for the A* search
-    # c = cost so far (to get to state1)
-    # state1 = where we came from
-    # action = what we did
-    # state2 = where we ended up
-    def path_cost(self, c, state1, action, state2):
-         return c + 1
-
-    # HEURISTIC FUNCTION: Estimates the minimum steps to finish.
-    # It sums three independent costs (Admissible):
-    # 1. Action Cost: The remaining 'POUR' actions needed (goal_water).
-    # 2. Resource Deficit: The remaining 'LOAD' actions required based on current inventory.
-    # 3. The BFS travel time to the single hardest-to-reach plant.
-    def h(self, node):
-        # 1. Unpack current state
-        robots, plants, taps, goal_water = node.state
-
-        # If goal is met, cost is zero
-        if goal_water == 0:
-            return 0
-
-        # 2. Identify active targets
-        # We only care about plants/taps that are still part of the game
-        active_plants_pos = [p[0] for p in plants]
-        active_taps_pos = [t[0] for t in taps]
-
-        # Quick exit if no plants left
-        if not active_plants_pos:
-            return 0
-
-        # --- PART 2: RESOURCE DEFICIT ---
-        # Calculate how much water we are currently holding
-        current_inventory = sum(r[2] for r in robots)
-
-        # Calculate the deficit: (Goal) - (Inventory)
-        # This represents the minimum 'LOAD' actions we still need to perform
-        resource_deficit = max(0, goal_water - current_inventory)
-
-        # --- PART 3: TRAVEL BOTTLENECK ---
-        # We want to find the single plant that is furthest away from help.
-        # This determines the minimum travel time required.
-        worst_case_travel = 0
-
-        for p_loc in active_plants_pos:
-            # Find the fastest robot to reach THIS specific plant
-            fastest_time_to_plant = float('inf')
-
-            for r_id, r_loc, r_load in robots:
-                travel_dist = 0
-
-                # SCENARIO A: Robot is ready (Has water)
-                # Path: Robot -> Plant
-                if r_load > 0:
-                    travel_dist = self.bfs_distance(r_loc, p_loc)
-
-                # SCENARIO B: Robot is empty
-                # Path: Robot -> Best Tap -> Plant
-                else:
-                    if not active_taps_pos:
-                        travel_dist = float('inf')
-                    else:
-                        # Find the tap that minimizes the total detour
-                        best_detour = float('inf')
-
-                        for t_loc in active_taps_pos:
-                            # Distance to get to the tap
-                            leg_1 = self.bfs_distance(r_loc, t_loc)
-                            # Distance from tap to plant
-                            leg_2 = self.bfs_distance(t_loc, p_loc)
-
-                            # Note: We do NOT add +1 for loading here.
-                            # That cost is covered by 'resource_deficit' at the end.
-                            total_leg = leg_1 + leg_2
-
-                            if total_leg < best_detour:
-                                best_detour = total_leg
-
-                        travel_dist = best_detour
-
-                # Keep the best time found for this plant
-                if travel_dist < fastest_time_to_plant:
-                    fastest_time_to_plant = travel_dist
-
-            # Update the global bottleneck
-            # If this plant takes longer to reach than any previous plant, it's the new bottleneck
-            if fastest_time_to_plant > worst_case_travel and fastest_time_to_plant != float('inf'):
-                worst_case_travel = fastest_time_to_plant
-
-        # Final Estimate:
-        # (Total Pours Needed) + (Total Loads Needed) + (Longest Travel Time)
-        return goal_water + resource_deficit + worst_case_travel
-
-
-class Controller:
-    """
-    Controls the robots by selecting a single 'Leader' and planning strictly for them.
-    Handles collisions by treating other robots as temporary walls.
-    """
-
-    def __init__(self, game: ext_plant.Game):
-        self.game_ref = game
+    def _trigger_reset(self):
         self.action_queue = []
-        self.known_blockers = set()  # MEMORY: Places where we recently bumped into robots
-
-        # --- 1. THE ELECTION: Pick the Leader ---
-        # We want the robot with High Reliability (buckets of 5%) and High Capacity.
-
-        problem_data = game.get_problem()
-        probs = problem_data["robot_chosen_action_prob"]
-        caps = game.get_capacities()
-
-        best_candidate = None
-        highest_score = (-1, -1, -1)
-
-        for rid, p in probs.items():
-            # Score Calculation:
-            # 1. Reliability Tier: 0.96 -> 19. 0.94 -> 18.
-            tier = int(p * 20)
-
-            # 2. Capacity: Bigger tanks are better
-            cap = caps.get(rid, 0)
-
-            # 3. Tie-breaker: The exact probability
-            score = (tier, cap, p)
-
-            if score > highest_score:
-                highest_score = score
-                best_candidate = rid
-
-        self.leader_id = best_candidate
-
-    def choose_next_action(self, state):
-        # Unpack full state
-        robots_full, plants, taps, goal = state
-
-        # If we have a plan, check if the NEXT move crashes into a dumb robot.
-        if self.action_queue:
-            next_action = self.action_queue[0]
-
-            # Where is our leader standing right now?
-            leader_pos = next(r[1] for r in robots_full if r[0] == self.leader_id)
-
-            # Calculate the coordinate we are trying to step onto
-            target_pos = None
-            if "UP" in next_action:
-                target_pos = (leader_pos[0] - 1, leader_pos[1])
-            elif "DOWN" in next_action:
-                target_pos = (leader_pos[0] + 1, leader_pos[1])
-            elif "LEFT" in next_action:
-                target_pos = (leader_pos[0], leader_pos[1] - 1)
-            elif "RIGHT" in next_action:
-                target_pos = (leader_pos[0], leader_pos[1] + 1)
-
-            # Is someone standing there?
-            if target_pos:
-                # Check if ANY robot (except us) is at target_pos
-                is_blocked = any(r[1] == target_pos for r in robots_full if r[0] != self.leader_id)
-
-                if is_blocked:
-                    # CRASH DETECTED!
-                    # 1. Mark this spot as a "Wall" for future planning
-                    self.known_blockers.add(target_pos)
-                    # 2. Delete the current plan because it's dangerous
-                    self.action_queue = []
-                else:
-                    # The path is clear! Go ahead.
-                    return self.action_queue.pop(0)
-
-        # --- 3. THE SOLVER: Plan a path for the Leader ---
-        # (We only get here if the queue is empty, or we just crashed)
-
-        # Create a "Solo Team" tuple (Just the Leader)
-        active_team = tuple([r for r in robots_full if r[0] == self.leader_id])
-
-        # Create the simplified state
-        solo_mission = (active_team, plants, taps, goal)
-
-        # Solve! (Passing known_blockers as extra_walls)
-        solver = WateringProblem(solo_mission, self.game_ref, extra_walls=self.known_blockers)
-        result_node = astar_search(solver)
-
-        if result_node:
-            # Reconstruct the path
-            path = []
-            curr = result_node
-            while curr.parent:
-                path.append(curr.action)
-                curr = curr.parent
-
-            self.action_queue = path[::-1]
-
-            # We found a path! Execute the first step.
-            return self.action_queue.pop(0)
-
-        # If we are totally stuck (e.g., surrounded), Reset.
+        self.queue_idx = 0
+        self.temp_barriers.clear()
+        self.dead_crops.clear()
+        self.pos_tracker.clear()
+        self.just_reset = True
+        self.focus_crop = None
         return "RESET"
+
+    def _fallback_move(self, state):
+        agents, _, _, _ = state
+        xy, _ = self._get_agent_state(agents, self.primary_id)
+
+        if xy is None: return self._trigger_reset()
+
+        for m_key in MOVES:
+            if self._is_move_valid(m_key, self.primary_id, state):
+                self.pos_tracker[self.primary_id] = self._calc_next_pos(xy, m_key)
+                return f"{m_key}({self.primary_id})"
+
+        return self._trigger_reset()
+
+    # --- Main Loop ---
+    def choose_next_action(self, full_state):
+        agents, crops, taps, _ = full_state
+        active_now = {p for p, n in crops if n > 0}
+
+        # 1. Post-Reset Cleanup
+        if self.just_reset:
+            self.crop_baseline = active_now
+            self.just_reset = False
+            self.pos_tracker.clear()
+
+        # 2. Slip Check
+        has_slipped = False
+        for rid in self.reliable_ids:
+            if rid in self.pos_tracker:
+                real_pos, _ = self._get_agent_state(agents, rid)
+                if real_pos is not None and real_pos != self.pos_tracker[rid]:
+                    has_slipped = True
+                    break
+        if has_slipped:
+            self._generate_plan()
+            self.pos_tracker.clear()
+
+        # 3. Greedy Strategy Checks
+        if self.mode == "GREEDY_PLANT":
+            # If a plant finished, reset to re-evaluate
+            if len(active_now) < len(self.crop_baseline):
+                return self._trigger_reset()
+
+            # Teleport optimization
+            l_pos, l_load = self._get_agent_state(agents, self.primary_id)
+            if l_pos is not None and l_load == 0:
+                start_coords = tuple(self.raw_data["Robots"][self.primary_id][0:2])
+                dist_start = self._bfs_water_dist(start_coords, taps)
+                dist_curr = self._bfs_water_dist(l_pos, taps)
+                if dist_start < dist_curr:
+                    return self._trigger_reset()
+
+        # 4. Execute Plan
+        while self.queue_idx < len(self.action_queue):
+            cmd = self.action_queue[self.queue_idx]
+            # Parse cmd: "UP(0)"
+            action_type = cmd.split("(")[0]
+            agent_id = int(cmd.split("(")[1].rstrip(")"))
+
+            curr_pos, curr_load = self._get_agent_state(agents, agent_id)
+            if curr_pos is None:
+                self.queue_idx += 1
+                continue
+
+            # Opportunistic Fill
+            if action_type in MOVES:
+                is_on_water = any(t == curr_pos and amt > 0 for t, amt in taps)
+                if is_on_water:
+                    cap = self.max_loads[agent_id]
+                    desired = cap
+                    if self.focus_crop is not None:
+                        # Find specific need
+                        spec_need = 0
+                        for cp, cn in crops:
+                            if cp == self.focus_crop: spec_need = cn; break
+                        desired = min(cap, max(0, spec_need))
+
+                    if curr_load < desired and self._is_move_valid("LOAD", agent_id, full_state):
+                        self.pos_tracker[agent_id] = curr_pos
+                        return f"LOAD({agent_id})"
+
+                # Blocker Logic
+                target_cell = self._calc_next_pos(curr_pos, action_type)
+                blocker_id = self._check_occupancy(agents, target_cell, ignore_id=agent_id)
+                if blocker_id is not None:
+                    self.temp_barriers.add(target_cell)
+                    self._generate_plan()
+                    return self._fallback_move(full_state)
+
+            if not self._is_move_valid(action_type, agent_id, full_state):
+                self.queue_idx += 1
+                continue
+
+            # Update tracking
+            if action_type in MOVES:
+                self.pos_tracker[agent_id] = self._calc_next_pos(curr_pos, action_type)
+            else:
+                self.pos_tracker[agent_id] = curr_pos
+
+            self.queue_idx += 1
+            return cmd
+
+        # 5. Plan Exhausted
+        self._generate_plan()
+        if not self.action_queue:
+            return self._fallback_move(full_state)
+
+        # Attempt start of new plan
+        next_cmd = self.action_queue[0]
+        act_t = next_cmd.split("(")[0]
+        aid = int(next_cmd.split("(")[1].rstrip(")"))
+
+        if self._is_move_valid(act_t, aid, full_state):
+            c_pos, _ = self._get_agent_state(agents, aid)
+            if c_pos is not None:
+                if act_t in MOVES:
+                    self.pos_tracker[aid] = self._calc_next_pos(c_pos, act_t)
+                else:
+                    self.pos_tracker[aid] = c_pos
+            self.queue_idx = 1
+            return next_cmd
+
+        return self._fallback_move(full_state)
