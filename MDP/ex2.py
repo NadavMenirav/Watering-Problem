@@ -202,6 +202,18 @@ class WateringProblem(Problem):
                 q.append(((x, y + 1), parent_distance + 1))
 
 
+    # The wrapper function. You calculate the distance calling this function
+    def bfs_distance(self, coordinate1, coordinate2):
+        distance = self.distances.get((coordinate1, coordinate2))
+        if distance is not None:
+            return distance
+
+        self.BFS(coordinate1) # Calculating the BFS from this point.
+
+        # Infinity value just in case path is impossible
+        return self.distances.get((coordinate1, coordinate2), float('inf'))
+
+
     # This function receives a point on the grid and returns a boolean value based on whether there is a robot in that
     # coordinate
     def is_coordinate_contain_robot(self, coordinate, robots, current_robot):
