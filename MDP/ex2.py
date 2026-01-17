@@ -429,34 +429,90 @@ class WateringProblem(Problem):
     def path_cost(self, c, state1, action, state2):
          return c + 1
 
-    # The heuristic function. For now, it is very simple, returns the total water needed.
+    # HEURISTIC FUNCTION: Estimates the minimum steps to finish.
+    # It sums three independent costs (Admissible):
+    # 1. Action Cost: The remaining 'POUR' actions needed (goal_water).
+    # 2. Resource Deficit: The remaining 'LOAD' actions required based on current inventory.
+    # 3. The BFS travel time to the single hardest-to-reach plant.
     def h(self, node):
+        # 1. Unpack current state
+        robots, plants, taps, goal_water = node.state
 
-        # 1. Unpack the state tuple
-        robots_t, plants_t, taps_t, total_needed = node.state
-
-        # If we have delivered all water, the cost is 0. We are done.
-        if total_needed == 0:
+        # If goal is met, cost is zero
+        if goal_water == 0:
             return 0
 
-        # 2. Get Targets
-        # Since your successor function deletes finished plants/taps,
-        # anything left in these tuples is "active". We just need their positions.
-        active_plants = [pos for pos, need in plants_t]
-        active_taps = [pos for pos, amount in taps_t]
+        # 2. Identify active targets
+        # We only care about plants/taps that are still part of the game
+        active_plants_pos = [p[0] for p in plants]
+        active_taps_pos = [t[0] for t in taps]
 
-        # Safety check: If no plants left, cost is 0
-        if not active_plants:
+        # Quick exit if no plants left
+        if not active_plants_pos:
             return 0
 
-        # Calculate how much water the robots are holding right now
-        total_load = 0
-        for r_id, r_pos, load in robots_t:
-            total_load += load
+        # --- PART 2: RESOURCE DEFICIT ---
+        # Calculate how much water we are currently holding
+        current_inventory = sum(r[2] for r in robots)
 
-        # The Water Needed = (Total Needed) - (What we already have in our hands)
-        # We can't have a negative need of course, so we take max(0, ...)
-        water_needed = max(0, total_needed - total_load)
+        # Calculate the deficit: (Goal) - (Inventory)
+        # This represents the minimum 'LOAD' actions we still need to perform
+        resource_deficit = max(0, goal_water - current_inventory)
+
+        # --- PART 3: TRAVEL BOTTLENECK ---
+        # We want to find the single plant that is furthest away from help.
+        # This determines the minimum travel time required.
+        worst_case_travel = 0
+
+        for p_loc in active_plants_pos:
+            # Find the fastest robot to reach THIS specific plant
+            fastest_time_to_plant = float('inf')
+
+            for r_id, r_loc, r_load in robots:
+                travel_dist = 0
+
+                # SCENARIO A: Robot is ready (Has water)
+                # Path: Robot -> Plant
+                if r_load > 0:
+                    travel_dist = self.bfs_distance(r_loc, p_loc)
+
+                # SCENARIO B: Robot is empty
+                # Path: Robot -> Best Tap -> Plant
+                else:
+                    if not active_taps_pos:
+                        travel_dist = float('inf')
+                    else:
+                        # Find the tap that minimizes the total detour
+                        best_detour = float('inf')
+
+                        for t_loc in active_taps_pos:
+                            # Distance to get to the tap
+                            leg_1 = self.bfs_distance(r_loc, t_loc)
+                            # Distance from tap to plant
+                            leg_2 = self.bfs_distance(t_loc, p_loc)
+
+                            # Note: We do NOT add +1 for loading here.
+                            # That cost is covered by 'resource_deficit' at the end.
+                            total_leg = leg_1 + leg_2
+
+                            if total_leg < best_detour:
+                                best_detour = total_leg
+
+                        travel_dist = best_detour
+
+                # Keep the best time found for this plant
+                if travel_dist < fastest_time_to_plant:
+                    fastest_time_to_plant = travel_dist
+
+            # Update the global bottleneck
+            # If this plant takes longer to reach than any previous plant, it's the new bottleneck
+            if fastest_time_to_plant > worst_case_travel and fastest_time_to_plant != float('inf'):
+                worst_case_travel = fastest_time_to_plant
+
+        # Final Estimate:
+        # (Total Pours Needed) + (Total Loads Needed) + (Longest Travel Time)
+        return goal_water + resource_deficit + worst_case_travel
+
 
 class Controller:
     """This class is a controller for the ext_plant game."""
